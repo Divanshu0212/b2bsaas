@@ -46,6 +46,10 @@ dependencies {
         // Confluent ships its own slf4j/logback transitively; keep Spring Boot's.
         exclude(group = "org.slf4j")
     }
+    // T2.4: consumer-side retry with exponential backoff before DLQ (overview §6.3).
+    // 2.4.0 is the current release compatible with Spring Boot 3.4.x (needs
+    // spring-boot-starter-actuator + spring-boot-starter-aop, both already deps above).
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.4.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")

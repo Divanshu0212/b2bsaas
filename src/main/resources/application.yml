@@ -42,11 +42,29 @@ app:
     polling:
       fixed-delay-ms: ${OUTBOX_POLL_DELAY_MS:3000}
 
+resilience4j:
+  retry:
+    instances:
+      # T2.4: shared retry instance for every IdempotentConsumer subclass (see
+      # IdempotentConsumer.RETRY_INSTANCE_NAME). Exponential backoff per overview §6.3
+      # ("Retry + exponential backoff on Kafka consume before DLQ"); after max-attempts
+      # is exhausted the caller (IdempotentConsumer) routes the message to <topic>.DLQ.
+      idempotentConsumer:
+        max-attempts: ${EVENTING_RETRY_MAX_ATTEMPTS:3}
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        # Never abandon a redelivery attempt for a transient dedupe-table contention
+        # blip either — retry on any exception; only true "poison message" handler
+        # failures should exhaust attempts and go to the DLQ.
+        retry-exceptions:
+          - java.lang.Exception
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,retries
   endpoint:
     health:
       probes:
