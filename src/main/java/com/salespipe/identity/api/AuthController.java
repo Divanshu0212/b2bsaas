@@ -5,6 +5,7 @@ import com.salespipe.identity.domain.Organization;
 import com.salespipe.identity.domain.Role;
 import com.salespipe.identity.domain.User;
 import com.salespipe.identity.infra.*;
+import com.salespipe.pipeline.domain.DealStageSeeder;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,12 +22,13 @@ public class AuthController {
     private final PasswordEncoder encoder;
     private final JwtProvider jwt;
     private final RefreshTokenService refreshTokens;
+    private final DealStageSeeder stageSeeder;
 
     public AuthController(OrganizationRepository orgs, UserRepository users,
                           PasswordEncoder encoder, JwtProvider jwt,
-                          RefreshTokenService refreshTokens) {
+                          RefreshTokenService refreshTokens, DealStageSeeder stageSeeder) {
         this.orgs = orgs; this.users = users; this.encoder = encoder;
-        this.jwt = jwt; this.refreshTokens = refreshTokens;
+        this.jwt = jwt; this.refreshTokens = refreshTokens; this.stageSeeder = stageSeeder;
     }
 
     @PostMapping("/register")
@@ -34,6 +36,7 @@ public class AuthController {
     public TokenResponse register(@Valid @RequestBody RegisterRequest req) {
         Organization org = new Organization(UUID.randomUUID(), req.orgName());
         orgs.save(org);
+        stageSeeder.seedDefaults(org.getId());
         User admin = new User(UUID.randomUUID(), org.getId(), req.email(),
             encoder.encode(req.password()), Role.ADMIN);
         users.save(admin);
