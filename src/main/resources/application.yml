@@ -31,6 +31,9 @@ app:
     secret: ${JWT_SECRET:dev-secret-change-me-min-256-bits-long-for-hs256-xxxxxxxx}
     access-ttl-seconds: 900
     refresh-ttl-seconds: 1209600
+  eventing:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    schema-registry-url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
 
 management:
   endpoints:

@@ -6,6 +6,10 @@ services:
       POSTGRES_USER: salespipe
       POSTGRES_PASSWORD: salespipe
     ports: ["5432:5432"]
+    # NOTE (T2.3): Debezium's Postgres CDC connector needs logical replication.
+    # Uncomment the two lines below (and bump max_replication_slots/max_wal_senders
+    # if you add more connectors) when wiring Debezium Connect:
+    # command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U salespipe"]
       interval: 5s
@@ -16,6 +20,49 @@ services:
     image: redis:7-alpine
     ports: ["6379:6379"]
 
+  # Kafka in KRaft mode (no ZooKeeper) — combined broker+controller, single node,
+  # for local dev. confluentinc image chosen (over bitnami) so the version line
+  # matches cp-schema-registry below and Debezium Connect's confluentinc-based
+  # image in T2.3.
+  kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports: ["29092:29092"]
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports: ["8081:8081"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/subjects >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
   app:
     build: .
     depends_on:
@@ -23,10 +70,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/salespipe
       DB_USER: salespipe
       DB_PASSWORD: salespipe
       REDIS_HOST: redis
       JWT_SECRET: compose-secret-min-256-bits-long-for-hs256-xxxxxxxxxxxxxxx
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports: ["8080:8080"]

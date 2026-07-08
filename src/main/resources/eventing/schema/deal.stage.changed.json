@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "deal.stage.changed",
+  "description": "Canonical envelope for the deal.stage.changed topic.",
+  "type": "object",
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "type": "string", "const": "deal.stage.changed" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "orgId": { "type": "string" },
+    "aggregateType": { "type": "string", "const": "deal" },
+    "aggregateId": { "type": "string" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "traceId": { "type": ["string", "null"] },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "dealId": { "type": "string" },
+        "fromStageId": { "type": ["string", "null"] },
+        "toStageId": { "type": "string" },
+        "changedBy": { "type": ["string", "null"] }
+      },
+      "required": ["dealId", "toStageId"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["eventId", "eventType", "schemaVersion", "orgId", "aggregateType", "aggregateId", "occurredAt", "payload"],
+  "additionalProperties": true
+}

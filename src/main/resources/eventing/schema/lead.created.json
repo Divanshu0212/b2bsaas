@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "lead.created",
+  "description": "Canonical envelope for the lead.created topic.",
+  "type": "object",
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "type": "string", "const": "lead.created" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "orgId": { "type": "string" },
+    "aggregateType": { "type": "string", "const": "lead" },
+    "aggregateId": { "type": "string" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "traceId": { "type": ["string", "null"] },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string" },
+        "contactId": { "type": ["string", "null"] },
+        "accountId": { "type": ["string", "null"] },
+        "source": { "type": ["string", "null"] },
+        "status": { "type": ["string", "null"] }
+      },
+      "required": ["leadId"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["eventId", "eventType", "schemaVersion", "orgId", "aggregateType", "aggregateId", "occurredAt", "payload"],
+  "additionalProperties": true
+}

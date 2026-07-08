@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "activity.logged",
+  "description": "Canonical envelope for the activity.logged topic.",
+  "type": "object",
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "type": "string", "const": "activity.logged" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "orgId": { "type": "string" },
+    "aggregateType": { "type": "string" },
+    "aggregateId": { "type": "string" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "traceId": { "type": ["string", "null"] },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "activityType": { "type": "string", "enum": ["CALL", "EMAIL", "NOTE", "MEETING", "STAGE_CHANGE"] },
+        "createdBy": { "type": ["string", "null"] }
+      },
+      "required": ["entityType", "entityId", "activityType"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["eventId", "eventType", "schemaVersion", "orgId", "aggregateType", "aggregateId", "occurredAt", "payload"],
+  "additionalProperties": true
+}
