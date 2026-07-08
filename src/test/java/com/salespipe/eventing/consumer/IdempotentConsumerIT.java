@@ -94,8 +94,15 @@ class IdempotentConsumerIT extends PostgresRedisTestBase {
         registry.add("resilience4j.retry.instances.idempotentConsumer.wait-duration", () -> "50ms");
     }
 
-    static final String OK_TOPIC = Topics.LEAD_CREATED;
-    static final String POISON_TOPIC = Topics.DEAL_STAGE_CHANGED;
+    // Real topics with schemas already registered (KafkaJsonSchemaSerializer requires a
+    // pre-registered schema; AUTO_REGISTER_SCHEMAS=false), but deliberately picked as
+    // ones with NO production consumer: this IT boots the full application context (see
+    // class javadoc), so a topic like deal.stage.changed would also be consumed by real
+    // IdempotentConsumer subclasses (activity/notification) whose handlers would
+    // race/interfere with this test's own poison/recording consumers. lead.score.updated
+    // and email.event.received are produced-only in Phase 2 (scoring consumer is Phase 3).
+    static final String OK_TOPIC = Topics.LEAD_SCORE_UPDATED;
+    static final String POISON_TOPIC = Topics.EMAIL_EVENT_RECEIVED;
 
     @Autowired JdbcTemplate jdbc;
     @Autowired EventPublisher eventPublisher;
