@@ -17,7 +17,7 @@ spring:
       ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
-    open-in-view: false
+    open-in-view: true
   flyway:
     enabled: true
     locations: classpath:db/migration

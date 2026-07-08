@@ -30,11 +30,16 @@ public class TenantFilter implements Filter {
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
             throws IOException, ServletException {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean openedEntityManager = false;
         if (auth != null && auth.getPrincipal() instanceof AuthPrincipal p) {
             tenantContext.setOrgId(p.orgId());
-            filterAspect.enable();
+            openedEntityManager = filterAspect.enable();
         }
-        chain.doFilter(req, res);
+        try {
+            chain.doFilter(req, res);
+        } finally {
+            filterAspect.close(openedEntityManager);
+        }
     }
 
     /** Principal carried by the Authentication set in JwtAuthFilter. */
