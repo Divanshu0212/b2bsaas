@@ -5,6 +5,7 @@ import com.salespipe.crmcore.api.dto.LeadRequest;
 import com.salespipe.crmcore.api.dto.LeadResponse;
 import com.salespipe.crmcore.api.mapper.LeadMapper;
 import com.salespipe.crmcore.domain.Lead;
+import com.salespipe.crmcore.domain.LeadService;
 import com.salespipe.crmcore.domain.LeadStatus;
 import com.salespipe.crmcore.infra.LeadRepository;
 import jakarta.validation.Valid;
@@ -24,9 +25,10 @@ public class LeadController {
     private final LeadRepository repo;
     private final LeadMapper mapper;
     private final TenantContext tenant;
+    private final LeadService leadService;
 
-    public LeadController(LeadRepository repo, LeadMapper mapper, TenantContext tenant) {
-        this.repo = repo; this.mapper = mapper; this.tenant = tenant;
+    public LeadController(LeadRepository repo, LeadMapper mapper, TenantContext tenant, LeadService leadService) {
+        this.repo = repo; this.mapper = mapper; this.tenant = tenant; this.leadService = leadService;
     }
 
     @PostMapping
@@ -34,7 +36,10 @@ public class LeadController {
     public LeadResponse create(@Valid @RequestBody LeadRequest req) {
         Lead lead = new Lead(UUID.randomUUID(), tenant.getOrgId(), req.status());
         apply(lead, req);
-        return mapper.toResponse(repo.save(lead));
+        // T2.7: delegate to LeadService so the lead insert + lead.created outbox row
+        // commit in the same transaction (see LeadService javadoc for why this moved
+        // out of the controller rather than making this method @Transactional).
+        return mapper.toResponse(leadService.create(lead));
     }
 
     @GetMapping("/{id}")

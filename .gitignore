@@ -1,5 +1,6 @@
 # Java / Gradle
 .gradle/
+.gradle-container/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 *.class
