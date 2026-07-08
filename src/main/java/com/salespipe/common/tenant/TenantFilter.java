@@ -34,11 +34,14 @@ public class TenantFilter implements Filter {
         if (auth != null && auth.getPrincipal() instanceof AuthPrincipal p) {
             tenantContext.setOrgId(p.orgId());
             openedEntityManager = filterAspect.enable();
+            org.slf4j.MDC.put("org_id", p.orgId().toString());
+            org.slf4j.MDC.put("user_id", p.userId().toString());
         }
         try {
             chain.doFilter(req, res);
         } finally {
             filterAspect.close(openedEntityManager);
+            org.slf4j.MDC.clear();
         }
     }
 
