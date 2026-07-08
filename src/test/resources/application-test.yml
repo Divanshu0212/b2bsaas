@@ -1,0 +1,11 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+app:
+  jwt:
+    secret: test-secret-min-256-bits-long-for-hs256-testing-xxxxxxxxxxxxx
+    access-ttl-seconds: 900
+    refresh-ttl-seconds: 1209600
