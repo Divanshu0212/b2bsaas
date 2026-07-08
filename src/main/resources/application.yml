@@ -41,6 +41,14 @@ app:
     relay-mode: ${OUTBOX_RELAY_MODE:cdc}
     polling:
       fixed-delay-ms: ${OUTBOX_POLL_DELAY_MS:3000}
+  tracking:
+    # T2.6: app-wide HMAC secret for email tracking_sig (see TrackingSigner javadoc for
+    # why this is app-wide rather than per-org — the organizations table has no secret
+    # column). Configured the same way app.jwt.secret is.
+    secret: ${EMAIL_TRACKING_SECRET:dev-tracking-secret-change-me-min-256-bits-xxxxxxxx}
+    # Bucket4j per-org budget on the pixel/click/webhook endpoints (overview §6.1).
+    rate-limit-capacity: ${EMAIL_TRACKING_RATE_LIMIT_CAPACITY:30}
+    rate-limit-refill-per-minute: ${EMAIL_TRACKING_RATE_LIMIT_REFILL:30}
 
 resilience4j:
   retry:

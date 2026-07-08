@@ -50,6 +50,15 @@ dependencies {
     // 2.4.0 is the current release compatible with Spring Boot 3.4.x (needs
     // spring-boot-starter-actuator + spring-boot-starter-aop, both already deps above).
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.4.0")
+    // T2.6: Redis-backed per-tenant rate limiting on the public email tracking/webhook
+    // endpoints (overview §6.1: "Rate limiting: Bucket4j + Redis, per-tenant"). Uses the
+    // Lettuce-based bucket4j proxy manager since spring-boot-starter-data-redis (already
+    // a dep above) brings Lettuce onto the classpath. Artifact ids are the JDK17-targeted
+    // "_jdk17-*" variants (Bucket4j 8.x publishes separate jars per JDK baseline; this
+    // repo targets Java 21, so jdk17 is the right floor) -- there is no plain
+    // "bucket4j-core"/"bucket4j-redis" artifact for this version line.
+    implementation("com.bucket4j:bucket4j_jdk17-core:8.14.0")
+    implementation("com.bucket4j:bucket4j_jdk17-lettuce:8.14.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")

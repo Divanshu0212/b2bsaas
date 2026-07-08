@@ -9,3 +9,9 @@ app:
     secret: test-secret-min-256-bits-long-for-hs256-testing-xxxxxxxxxxxxx
     access-ttl-seconds: 900
     refresh-ttl-seconds: 1209600
+  tracking:
+    secret: test-tracking-secret-min-256-bits-long-for-hmac-xxxxxxxxxxxxxxxxx
+    # Small, deterministic budget so the rate-limit acceptance test (burst of N+1
+    # requests) doesn't need an unreasonably large loop to trip the limiter.
+    rate-limit-capacity: 5
+    rate-limit-refill-per-minute: 5
