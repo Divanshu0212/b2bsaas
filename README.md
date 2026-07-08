@@ -240,6 +240,7 @@ flowchart LR
 | CI/CD | GitHub Actions → container registry → Argo CD (GitOps) |
 | Secrets | K8s Secrets → External Secrets Operator + Vault |
 | Testing | JUnit 5, Mockito, Testcontainers, RestAssured, Gatling, pytest |
+| Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS + shadcn/ui, TanStack Query, dnd-kit, Vitest + Playwright |
 
 ---
 
@@ -254,8 +255,9 @@ Each phase is independently demoable. Full task breakdown, acceptance criteria, 
 | **[3 — AI lead scoring](docs/plan/phase-3-ai-scoring.md)** | Feature store, FastAPI service, MLflow, training, SHAP | Live score + history + factors; graceful ML fallback |
 | **[4 — Production hardening](docs/plan/phase-4-production-hardening.md)** | Observability, tracing, resilience, DLQ, GDPR, Gatling | Grafana dashboards, end-to-end traces, published p99 |
 | **[5 — Platform polish](docs/plan/phase-5-platform.md)** | Helm, KEDA, Argo CD GitOps, External Secrets | One-command zero-downtime deploy; lag-based scaling |
+| **[6 — Frontend](docs/plan/phase-6-frontend.md)** | Next.js web client: Kanban, lead detail, score + SHAP, notifications, reports | Full browser demo of the golden path, end to end |
 
-> Do not start a phase before the prior phase's **CORE** tasks pass their acceptance tests.
+> Do not start a phase before the prior phase's **CORE** tasks pass their acceptance tests. Phase 6 only requires Phases 1–4's APIs to be usable.
 
 ---
 
@@ -295,9 +297,10 @@ Selected endpoints (full contract via `springdoc-openapi` at `/swagger-ui.html`)
         ├── phase-2-event-backbone.md
         ├── phase-3-ai-scoring.md
         ├── phase-4-production-hardening.md
-        └── phase-5-platform.md
+        ├── phase-5-platform.md
+        └── phase-6-frontend.md
 ```
-Application code (`com.salespipe.*` modules + the Python `lead-scoring-service`) is added as each phase is built.
+Application code (`com.salespipe.*` modules, the Python `lead-scoring-service`, and the `frontend/` Next.js app) is added as each phase is built.
 
 ---
 
@@ -314,6 +317,10 @@ docker compose up -d
 
 # API docs
 open http://localhost:8080/swagger-ui.html
+
+# frontend (Phase 6)
+cd frontend && npm run dev
+open http://localhost:3000
 ```
 
 The plan targets `docker compose` for local development and Helm on a Kubernetes cluster (kind/minikube locally) for the deployment story.
@@ -330,6 +337,8 @@ The plan targets `docker compose` for local development and Helm on a Kubernetes
 | Module boundary | ArchUnit / Spring Modulith | Build fails on boundary or tenant-scope violations |
 | Load | Gatling | Kanban bursts, consumer throughput; published p99 + lag |
 | ML service | pytest | Feature pipeline, inference, promotion, data-leakage |
+| Frontend unit/component | Vitest + React Testing Library | Drag logic, score/SHAP rendering, form validation |
+| Frontend E2E | Playwright | Golden path against a real (containerized) backend |
 
 ---
 

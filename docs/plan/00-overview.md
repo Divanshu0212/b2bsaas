@@ -1,10 +1,12 @@
 # SalesPipe — Implementation Plan: Overview
 
 **Companion to:** `../../b2b-saas-crm-design-document.md` (SDD v1.0)
-**Plan version:** 1.0
-**Scope:** Buildable, production-correct implementation plan for all 5 phases, with improvements over the SDD baked in.
+**Plan version:** 1.1
+**Scope:** Buildable, production-correct implementation plan for all 6 phases, with improvements over the SDD baked in.
 
-This document is the master reference. Each phase has its own detail doc (`phase-1` … `phase-5`). Read this first, then execute one phase doc per implementation session.
+This document is the master reference. Each phase has its own detail doc (`phase-1` … `phase-6`). Read this first, then execute one phase doc per implementation session.
+
+> **v1.1 note:** the SDD did not cover a frontend. Phase 6 (Next.js web client) is a plan-only addition — it's not in the original SDD, so it has no "changed vs SDD" entries below; see its own doc for full rationale.
 
 ---
 
@@ -59,6 +61,9 @@ Every component is labeled **CORE** (must build for a production-correct system)
 | Elasticsearch full-text search | STRETCH | Postgres `tsvector` full-text |
 | WebSocket/SSE live Kanban | STRETCH | Client polling |
 | Gatling load tests | CORE (Phase 4) | — |
+| Next.js frontend | CORE (Phase 6) | — |
+| Typed API client (OpenAPI-generated) | CORE (Phase 6) | — |
+| WebSocket/SSE live push (board + notifications) | STRETCH | Polling (implemented as the CORE path) |
 
 ---
 
@@ -335,12 +340,15 @@ Rough solo-dev effort (calendar, part-time). Sizing is directional, not a commit
 | 3 | AI lead scoring | ~2–3 wk | Leads show live conversion score + history + SHAP factors |
 | 4 | Production hardening | ~2 wk | Grafana dashboards, traces, DLQs, published Gatling p99 |
 | 5 | Platform polish | ~1–2 wk | Helm + KEDA + GitOps, one-command deploy |
+| 6 | Frontend (Next.js) | ~2–3 wk | Full web client: Kanban, lead detail w/ live score + SHAP, notifications, reports |
 
 **Rule**: do not start a phase before the prior phase's CORE items pass their acceptance tests. An interviewer poking Phase 1 fundamentals and finding them shaky discounts everything above.
 
+**Note:** Phase 6 only needs Phases 1–4's APIs (auth, pipeline, timeline, scoring) to be usable — it can be built in parallel with Phase 5 if working solo across two tracks, though the default sequencing above still applies for a single-track build.
+
 ---
 
-## 9. Suggested package structure
+## 9. Suggested package / repo structure
 
 ```
 com.salespipe
@@ -356,6 +364,14 @@ com.salespipe
  └── common/        (tenant, audit, exception)
 ```
 Each module declares its Spring Modulith boundary via `package-info.java`; `ApplicationModules.of(SalesPipeApplication.class).verify()` runs in CI. Cross-module talk only via public API interface or domain events — never a foreign repository.
+
+The **frontend** (Phase 6) lives as a sibling top-level directory, not inside `com.salespipe`:
+```
+/
+├── (backend Java modules above)
+├── ml/            (Python FastAPI scoring service, Phase 3)
+└── frontend/      (Next.js app, Phase 6)
+```
 
 ---
 

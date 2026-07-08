@@ -9,6 +9,7 @@ Buildable, production-correct plan derived from the SDD (`../../b2b-saas-crm-des
 4. [phase-3-ai-scoring.md](phase-3-ai-scoring.md) — feature store, FastAPI scoring service, MLflow, training pipeline, SHAP.
 5. [phase-4-production-hardening.md](phase-4-production-hardening.md) — observability, tracing, resilience, DLQ, GDPR, Gatling.
 6. [phase-5-platform.md](phase-5-platform.md) — Helm, KEDA, Argo CD GitOps, External Secrets.
+7. [phase-6-frontend.md](phase-6-frontend.md) — Next.js web client: Kanban, lead detail with live AI score + SHAP, notifications, reporting. Not in the original SDD — plan-only addition.
 
 ## How to use
 - Each phase doc is independently executable — one phase ≈ one implementation session.
