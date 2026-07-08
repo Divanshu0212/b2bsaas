@@ -1,7 +1,5 @@
 package com.salespipe.common.exception;
 
-import com.salespipe.identity.infra.RefreshTokenService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -28,15 +26,6 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
         pd.setTitle("Concurrent modification");
         pd.setDetail("The resource was modified concurrently; retry with the latest version.");
-        return pd;
-    }
-
-    @ExceptionHandler({RefreshTokenService.TokenReuseException.class,
-                       RefreshTokenService.InvalidTokenException.class})
-    public ProblemDetail onToken(RuntimeException ex) {
-        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
-        pd.setTitle("Authentication failed");
-        pd.setDetail(ex.getMessage());
         return pd;
     }
 
