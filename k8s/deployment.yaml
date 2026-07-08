@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: salespipe
+  namespace: salespipe
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: salespipe } }
+  template:
+    metadata: { labels: { app: salespipe } }
+    spec:
+      containers:
+        - name: salespipe
+          image: salespipe:local
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8080 }]
+          env:
+            # Kubernetes auto-injects REDIS_PORT=tcp://<clusterIP>:6379 (Docker-links-style
+            # service discovery var) for the "redis" Service in this namespace, which collides
+            # with and overrides the app's ${REDIS_PORT:6379} placeholder, breaking int parsing.
+            # Pin it explicitly so the app always gets a plain port number.
+            - { name: REDIS_PORT, value: "6379" }
+          envFrom:
+            - configMapRef: { name: salespipe-config }
+            - secretRef: { name: salespipe-secret }
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            periodSeconds: 10
