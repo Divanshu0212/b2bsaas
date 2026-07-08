@@ -8,18 +8,25 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
 
-@Component
-@Order(10)
+/**
+ * Populates the SecurityContext from a Bearer JWT.
+ *
+ * <p>Intentionally NOT a {@code @Component}: Spring Boot auto-registers any
+ * {@code @Component implements Filter} as a standalone servlet container filter
+ * (via {@code FilterRegistrationBean}), which runs outside the Spring Security
+ * {@code FilterChainProxy} in addition to any explicit wiring. This filter is
+ * instead exposed as a plain {@code @Bean} (see {@link SecurityConfig}) and wired
+ * into the security chain via {@code addFilterBefore}, so it runs exactly once,
+ * in a deterministic position ahead of {@link TenantFilter}.
+ */
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwt;

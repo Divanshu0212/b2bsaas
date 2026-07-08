@@ -1,16 +1,21 @@
 package com.salespipe.common.tenant;
 
 import jakarta.servlet.*;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.UUID;
 
-@Component
-@Order(20)
+/**
+ * Reads the {@link AuthPrincipal} left in the SecurityContext by {@code JwtAuthFilter}
+ * and enables the Hibernate tenant filter for the request.
+ *
+ * <p>Intentionally NOT a {@code @Component}: see the note on {@code JwtAuthFilter}.
+ * This filter is exposed as a plain {@code @Bean} in {@code SecurityConfig} and wired
+ * into the security chain with {@code addFilterAfter(tenantFilter, JwtAuthFilter.class)}
+ * so it always runs after the SecurityContext has been populated.
+ */
 public class TenantFilter implements Filter {
 
     private final TenantContext tenantContext;
