@@ -6,10 +6,9 @@ services:
       POSTGRES_USER: salespipe
       POSTGRES_PASSWORD: salespipe
     ports: ["5432:5432"]
-    # NOTE (T2.3): Debezium's Postgres CDC connector needs logical replication.
-    # Uncomment the two lines below (and bump max_replication_slots/max_wal_senders
-    # if you add more connectors) when wiring Debezium Connect:
-    # command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4"]
+    # T2.3: Debezium's Postgres CDC connector (pgoutput plugin) needs logical
+    # replication enabled — was left commented by T2.1 for this task to enable.
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U salespipe"]
       interval: 5s
@@ -62,6 +61,36 @@ services:
       interval: 5s
       timeout: 5s
       retries: 15
+
+  # T2.3: Kafka Connect with the Debezium Postgres connector plugin preinstalled
+  # (debezium/connect image, same confluentinc-lineage version line as kafka/
+  # schema-registry above). Runs the outbox-event-router SMT against outbox_events —
+  # register debezium/outbox-connector.json against its REST API once healthy (see
+  # debezium/README.md runbook); not auto-registered by compose itself, since Connect's
+  # REST API is the documented way to do it and keeps this file declarative-only.
+  debezium:
+    image: debezium/connect:2.7
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: salespipe-debezium
+      CONFIG_STORAGE_TOPIC: _debezium_connect_configs
+      OFFSET_STORAGE_TOPIC: _debezium_connect_offsets
+      STATUS_STORAGE_TOPIC: _debezium_connect_status
+      KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+    ports: ["8083:8083"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   app:
     build: .

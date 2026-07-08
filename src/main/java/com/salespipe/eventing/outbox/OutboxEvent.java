@@ -13,8 +13,11 @@ import org.hibernate.annotations.ColumnTransformer;
  * Maps {@code outbox_events} (see docs/plan/00-overview.md §4). One row per business
  * event, written in the same transaction as the domain write it describes.
  *
- * <p>No {@code published} flag here — this is the CDC-only shape (Debezium reads the
- * WAL); the polling-relay fallback variant (T2.3) is a separate concern.
+ * <p>{@code published} defaults to {@code false} and is only meaningful under the
+ * polling-relay fallback (T2.3, {@code app.eventing.relay-mode=polling}); the CDC path
+ * (default) ignores it entirely — Debezium reads the WAL, not this column. See
+ * {@code V3__outbox_published_column.sql} for why the column ships unconditionally
+ * while only the relay *behavior* is profile-gated.
  *
  * <p>Shape intentionally mirrors {@link com.salespipe.eventing.EventEnvelope}
  * (orgId/aggregateType/aggregateId/eventType/traceId) so a CDC-relayed row maps onto
@@ -46,6 +49,9 @@ public class OutboxEvent extends TenantEntity {
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
+    @Column(name = "published", nullable = false)
+    private boolean published;
+
     protected OutboxEvent() {}
 
     public OutboxEvent(UUID id, UUID orgId, String aggregateType, String aggregateId,
@@ -67,4 +73,5 @@ public class OutboxEvent extends TenantEntity {
     public String getPayload() { return payload; }
     public String getTraceId() { return traceId; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
+    public boolean isPublished() { return published; }
 }

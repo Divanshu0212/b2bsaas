@@ -34,6 +34,13 @@ app:
   eventing:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
     schema-registry-url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+    # T2.3: outbox relay mode. `cdc` (default) = Debezium reads the WAL; no app-side
+    # relay bean is created at all. `polling` = fallback for environments without
+    # Debezium — activates eventing/outbox/PollingRelay (@ConditionalOnProperty).
+    # See application-polling.yml for a ready-made profile that flips this.
+    relay-mode: ${OUTBOX_RELAY_MODE:cdc}
+    polling:
+      fixed-delay-ms: ${OUTBOX_POLL_DELAY_MS:3000}
 
 management:
   endpoints:
