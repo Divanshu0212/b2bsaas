@@ -1,5 +1,6 @@
 plugins {
     java
+    jacoco
     id("org.springframework.boot") version "3.4.1"
     id("io.spring.dependency-management") version "1.1.7"
 }
@@ -104,3 +105,26 @@ dependencyManagement {
 }
 
 tasks.withType<Test> { useJUnitPlatform() }
+
+// T4.8: JaCoCo coverage. The report is always produced after the test run; the gate
+// (jacocoTestCoverageVerification) enforces a line-coverage floor and is wired into
+// `check` so CI fails if coverage regresses below the bar.
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports { xml.required.set(true); html.required.set(true) }
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.60".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.named("check") { dependsOn(tasks.jacocoTestCoverageVerification) }
+tasks.jacocoTestCoverageVerification { dependsOn(tasks.test) }

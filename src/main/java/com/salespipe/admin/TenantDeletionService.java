@@ -35,7 +35,7 @@ public class TenantDeletionService {
      * Org-scoped tables in FK-safe delete order (leaf/child tables first, {@code
      * organizations} last). Every table whose rows carry an {@code org_id}.
      */
-    static final List<String> ORG_SCOPED_TABLES_DELETE_ORDER = List.of(
+    public static final List<String> ORG_SCOPED_TABLES_DELETE_ORDER = List.of(
         // leaves that reference leads/deals/emails/users
         "refresh_tokens",
         "lead_scores",
