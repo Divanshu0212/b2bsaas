@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "email.event.received",
+  "description": "Canonical envelope for the email.event.received topic.",
+  "type": "object",
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "type": "string", "const": "email.event.received" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "orgId": { "type": "string" },
+    "aggregateType": { "type": "string", "const": "lead" },
+    "aggregateId": { "type": "string" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "traceId": { "type": ["string", "null"] },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "emailId": { "type": "string" },
+        "leadId": { "type": "string" },
+        "eventType": { "type": "string", "enum": ["OPENED", "CLICKED", "BOUNCED"] },
+        "ip": { "type": ["string", "null"] },
+        "userAgent": { "type": ["string", "null"] }
+      },
+      "required": ["emailId", "leadId", "eventType"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["eventId", "eventType", "schemaVersion", "orgId", "aggregateType", "aggregateId", "occurredAt", "payload"],
+  "additionalProperties": true
+}

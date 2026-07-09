@@ -1,6 +1,8 @@
 package com.salespipe.pipeline;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.salespipe.common.tenant.TenantContext;
+import com.salespipe.eventing.outbox.OutboxRecorder;
 import com.salespipe.pipeline.domain.Deal;
 import com.salespipe.pipeline.domain.DealStage;
 import com.salespipe.pipeline.domain.StageTransitionService;
@@ -32,7 +34,8 @@ class StageTransitionServiceTest {
         Deal deal = new Deal(dealId, tenant.getOrgId(), UUID.randomUUID());
         when(deals.findByIdFiltered(dealId)).thenReturn(Optional.of(deal));
 
-        var svc = new StageTransitionService(deals, stages, history, tenant);
+        OutboxRecorder outbox = mock(OutboxRecorder.class);
+        var svc = new StageTransitionService(deals, stages, history, tenant, outbox, new ObjectMapper());
 
         // deal.version == 0; client sends expectedVersion=5 -> stale -> 409
         assertThatThrownBy(() -> svc.move(dealId, stageId, 5, UUID.randomUUID()))

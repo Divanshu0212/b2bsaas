@@ -1,0 +1,9 @@
+# T2.3: activate with `--spring.profiles.active=polling` (or SPRING_PROFILES_ACTIVE=polling)
+# in environments without Debezium Connect. Flips the outbox relay from CDC to the
+# @Scheduled PollingRelay fallback (eventing/outbox/PollingRelay, @ConditionalOnProperty
+# on app.eventing.relay-mode). See docs/plan/phase-2-event-backbone.md T2.3 and
+# V3__outbox_published_column.sql for why the `published` column ships unconditionally
+# while only this behavior is profile-gated.
+app:
+  eventing:
+    relay-mode: polling

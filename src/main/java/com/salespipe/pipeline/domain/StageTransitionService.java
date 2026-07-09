@@ -1,6 +1,10 @@
 package com.salespipe.pipeline.domain;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.salespipe.common.tenant.TenantContext;
+import com.salespipe.eventing.Topics;
+import com.salespipe.eventing.outbox.OutboxRecorder;
 import com.salespipe.pipeline.infra.DealRepository;
 import com.salespipe.pipeline.infra.DealStageHistoryRepository;
 import com.salespipe.pipeline.infra.DealStageRepository;
@@ -19,11 +23,15 @@ public class StageTransitionService {
     private final DealStageRepository stages;
     private final DealStageHistoryRepository history;
     private final TenantContext tenant;
+    private final OutboxRecorder outbox;
+    private final ObjectMapper objectMapper;
 
     public StageTransitionService(DealRepository deals, DealStageRepository stages,
-                                  DealStageHistoryRepository history, TenantContext tenant) {
+                                  DealStageHistoryRepository history, TenantContext tenant,
+                                  OutboxRecorder outbox, ObjectMapper objectMapper) {
         this.deals = deals; this.stages = stages;
         this.history = history; this.tenant = tenant;
+        this.outbox = outbox; this.objectMapper = objectMapper;
     }
 
     /** Move a deal to a new stage under optimistic lock. Version mismatch => 409. */
@@ -53,6 +61,27 @@ public class StageTransitionService {
 
         history.save(new DealStageHistory(UUID.randomUUID(), tenant.getOrgId(),
             dealId, fromStageId, toStageId, actorId));
+
+        // T2.7: record deal.stage.changed in the SAME transaction as the deal update +
+        // history insert above — this is the transactional-outbox guarantee (overview
+        // §3/§5); OutboxRecorder deliberately does not open its own transaction (see its
+        // javadoc), so this call joins the @Transactional method's existing tx. Payload
+        // shape matches src/main/resources/eventing/schema/deal.stage.changed.json.
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.put("dealId", dealId.toString());
+        if (fromStageId != null) {
+            payload.put("fromStageId", fromStageId.toString());
+        } else {
+            payload.putNull("fromStageId");
+        }
+        payload.put("toStageId", toStageId.toString());
+        if (actorId != null) {
+            payload.put("changedBy", actorId.toString());
+        } else {
+            payload.putNull("changedBy");
+        }
+        outbox.record("deal", dealId.toString(), Topics.DEAL_STAGE_CHANGED, payload);
+
         return deal;
     }
 }

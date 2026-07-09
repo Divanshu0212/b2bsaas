@@ -31,12 +31,48 @@ app:
     secret: ${JWT_SECRET:dev-secret-change-me-min-256-bits-long-for-hs256-xxxxxxxx}
     access-ttl-seconds: 900
     refresh-ttl-seconds: 1209600
+  eventing:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    schema-registry-url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+    # T2.3: outbox relay mode. `cdc` (default) = Debezium reads the WAL; no app-side
+    # relay bean is created at all. `polling` = fallback for environments without
+    # Debezium — activates eventing/outbox/PollingRelay (@ConditionalOnProperty).
+    # See application-polling.yml for a ready-made profile that flips this.
+    relay-mode: ${OUTBOX_RELAY_MODE:cdc}
+    polling:
+      fixed-delay-ms: ${OUTBOX_POLL_DELAY_MS:3000}
+  tracking:
+    # T2.6: app-wide HMAC secret for email tracking_sig (see TrackingSigner javadoc for
+    # why this is app-wide rather than per-org — the organizations table has no secret
+    # column). Configured the same way app.jwt.secret is.
+    secret: ${EMAIL_TRACKING_SECRET:dev-tracking-secret-change-me-min-256-bits-xxxxxxxx}
+    # Bucket4j per-org budget on the pixel/click/webhook endpoints (overview §6.1).
+    rate-limit-capacity: ${EMAIL_TRACKING_RATE_LIMIT_CAPACITY:30}
+    rate-limit-refill-per-minute: ${EMAIL_TRACKING_RATE_LIMIT_REFILL:30}
+
+resilience4j:
+  retry:
+    instances:
+      # T2.4: shared retry instance for every IdempotentConsumer subclass (see
+      # IdempotentConsumer.RETRY_INSTANCE_NAME). Exponential backoff per overview §6.3
+      # ("Retry + exponential backoff on Kafka consume before DLQ"); after max-attempts
+      # is exhausted the caller (IdempotentConsumer) routes the message to <topic>.DLQ.
+      idempotentConsumer:
+        max-attempts: ${EVENTING_RETRY_MAX_ATTEMPTS:3}
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        # Never abandon a redelivery attempt for a transient dedupe-table contention
+        # blip either — retry on any exception; only true "poison message" handler
+        # failures should exhaust attempts and go to the DLQ.
+        retry-exceptions:
+          - java.lang.Exception
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,retries
   endpoint:
     health:
       probes:
