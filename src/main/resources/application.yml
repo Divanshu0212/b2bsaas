@@ -76,6 +76,13 @@ app:
     enabled: ${API_RATE_LIMIT_ENABLED:true}
     capacity: ${API_RATE_LIMIT_CAPACITY:100}
     refill-per-minute: ${API_RATE_LIMIT_REFILL:100}
+  # T4.7: partition-drop retention for the high-volume partitioned tables. Disabled by
+  # default (dropping partitions is destructive — opt in per environment). Windows are the
+  # documented retention periods for activities / email_events.
+  retention:
+    enabled: ${RETENTION_ENABLED:false}
+    activities-months: ${RETENTION_ACTIVITIES_MONTHS:12}
+    email-events-months: ${RETENTION_EMAIL_EVENTS_MONTHS:12}
 
 resilience4j:
   retry:
