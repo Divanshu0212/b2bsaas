@@ -49,6 +49,18 @@ app:
     # Bucket4j per-org budget on the pixel/click/webhook endpoints (overview §6.1).
     rate-limit-capacity: ${EMAIL_TRACKING_RATE_LIMIT_CAPACITY:30}
     rate-limit-refill-per-minute: ${EMAIL_TRACKING_RATE_LIMIT_REFILL:30}
+  scoring:
+    # T3.4: base URL of the Python lead-scoring service. Sync/manual scoring calls and
+    # async recompute both go through ScoringClient, wrapped in the resilience4j
+    # circuit-breaker/timelimiter/bulkhead below; on failure the app falls back to the
+    # last-known score so the UI never blocks on ML latency (overview change #9).
+    base-url: ${SCORING_SERVICE_URL:http://localhost:8000}
+    # Recompute mode: `immediate` (recompute per feature-update event, low volume) or
+    # `batched` (a @Scheduled sweep every N ms, high volume). Both implemented (T3.4).
+    recompute-mode: ${SCORING_RECOMPUTE_MODE:immediate}
+    recompute-batch-delay-ms: ${SCORING_RECOMPUTE_BATCH_DELAY_MS:60000}
+    # A lead crossing this score triggers a "hot lead" notification (T3.5).
+    hot-lead-threshold: ${SCORING_HOT_LEAD_THRESHOLD:0.75}
 
 resilience4j:
   retry:
@@ -67,6 +79,30 @@ resilience4j:
         # failures should exhaust attempts and go to the DLQ.
         retry-exceptions:
           - java.lang.Exception
+  circuitbreaker:
+    instances:
+      # T3.4: circuit breaker around the ML scoring call. Opens after a burst of
+      # failures/slow calls so a down ML service stops being hammered; while open,
+      # ScoringClient returns its last-known-score fallback (overview §6.3).
+      scoringService:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+  timelimiter:
+    instances:
+      # No unbounded wait on the ML call (overview §6.3 "Timeouts on every outbound HTTP call").
+      scoringService:
+        timeout-duration: 2s
+        cancel-running-future: true
+  bulkhead:
+    instances:
+      # Isolate the ML-call concurrency from the DB-call pool (overview §6.3 bulkhead).
+      scoringService:
+        max-concurrent-calls: 16
+        max-wait-duration: 100ms
 
 management:
   endpoints:
