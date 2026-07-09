@@ -69,6 +69,13 @@ app:
     api-key: ${SENDGRID_API_KEY:}
     from: ${EMAIL_FROM:no-reply@salespipe.local}
     idempotency-ttl-seconds: ${EMAIL_IDEMPOTENCY_TTL_SECONDS:86400}
+  # T4.6: per-tenant quota on authenticated API calls (Bucket4j + Redis, keyed api:<orgId>).
+  # One tenant's burst can't throttle another. The public /emails tracking endpoints keep
+  # their own separate limiter (app.tracking.rate-limit-*).
+  api-rate-limit:
+    enabled: ${API_RATE_LIMIT_ENABLED:true}
+    capacity: ${API_RATE_LIMIT_CAPACITY:100}
+    refill-per-minute: ${API_RATE_LIMIT_REFILL:100}
 
 resilience4j:
   retry:
