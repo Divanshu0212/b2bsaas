@@ -1,0 +1,46 @@
+groups:
+  - name: salespipe-dlq
+    rules:
+      - alert: DlqDepthNonZero
+        expr: salespipe_dlq_depth > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Messages present in DLQ topic {{ $labels.topic }}"
+          description: "salespipe_dlq_depth for topic {{ $labels.topic }} has been > 0 for at least 1m (current value {{ $value }}). Poison messages are accumulating and need triage/replay."
+
+  - name: salespipe-consumer-lag
+    rules:
+      - alert: ConsumerLagSpike
+        expr: salespipe_consumer_lag > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Consumer group {{ $labels.group }} is falling behind"
+          description: "salespipe_consumer_lag for group {{ $labels.group }} has exceeded 1000 records for at least 2m (current value {{ $value }})."
+
+  - name: salespipe-circuit-breaker
+    rules:
+      - alert: CircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{state="open"} == 1
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker {{ $labels.name }} is open"
+          description: "resilience4j_circuitbreaker_state reports circuit breaker {{ $labels.name }} open — downstream calls are being short-circuited to their fallback."
+
+  - name: salespipe-error-rate
+    rules:
+      - alert: ErrorRateSloBurn
+        expr: |
+          rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m])
+          / rate(http_server_requests_seconds_count[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx error rate above 5% SLO"
+          description: "The ratio of SERVER_ERROR responses to total requests over the last 5m has exceeded 5% (current value {{ $value | humanizePercentage }})."

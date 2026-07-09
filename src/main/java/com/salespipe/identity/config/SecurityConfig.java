@@ -52,7 +52,8 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(reg -> reg
                 .requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**",
-                    "/actuator/health/**", "/emails/**", "/webhooks/**", "/error").permitAll()
+                    "/actuator/health/**", "/actuator/prometheus", "/actuator/info",
+                    "/emails/**", "/webhooks/**", "/error").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(tenantFilter, JwtAuthFilter.class)

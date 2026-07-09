@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: salespipe
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 10s
+    rule_files:
+      - /etc/prometheus/alerts.yml
+    scrape_configs:
+      - job_name: salespipe-app
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ['salespipe:80']
+  alerts.yml: |
+    groups:
+      - name: salespipe-dlq
+        rules:
+          - alert: DlqDepthNonZero
+            expr: salespipe_dlq_depth > 0
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Messages present in DLQ topic {{ $labels.topic }}"
+              description: "salespipe_dlq_depth for topic {{ $labels.topic }} has been > 0 for at least 1m."
+      - name: salespipe-consumer-lag
+        rules:
+          - alert: ConsumerLagSpike
+            expr: salespipe_consumer_lag > 1000
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Consumer group {{ $labels.group }} is falling behind"
+              description: "salespipe_consumer_lag for group {{ $labels.group }} has exceeded 1000 for at least 2m."
+      - name: salespipe-circuit-breaker
+        rules:
+          - alert: CircuitBreakerOpen
+            expr: resilience4j_circuitbreaker_state{state="open"} == 1
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Circuit breaker {{ $labels.name }} is open"
+              description: "resilience4j_circuitbreaker_state reports circuit breaker {{ $labels.name }} open."
+      - name: salespipe-error-rate
+        rules:
+          - alert: ErrorRateSloBurn
+            expr: |
+              rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m])
+              / rate(http_server_requests_seconds_count[5m]) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "5xx error rate above 5% SLO"
+              description: "5xx ratio over the last 5m has exceeded 5%."
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: salespipe
+data:
+  datasource.yml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  namespace: salespipe
+data:
+  dashboards.yml: |
+    apiVersion: 1
+    providers:
+      - name: salespipe
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards/json

@@ -32,6 +32,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // T4.1: Prometheus registry so /actuator/prometheus produces scrape-able output
+    // (JVM/Hikari/Kafka-listener meters are auto-bound once this registry is on the
+    // classpath; no code needed for those).
+    implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.flywaydb:flyway-core")
