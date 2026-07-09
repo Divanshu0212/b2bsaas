@@ -72,6 +72,11 @@ dependencies {
     // "bucket4j-core"/"bucket4j-redis" artifact for this version line.
     implementation("com.bucket4j:bucket4j_jdk17-core:8.14.0")
     implementation("com.bucket4j:bucket4j_jdk17-lettuce:8.14.0")
+    // T4.4: real SendGrid client for outbound hot-lead/deal-stage emails, wrapped in the
+    // emailProvider resilience4j circuit-breaker/retry/timelimiter below. Config-gated:
+    // with app.email.enabled=false (default) a NoopEmailProvider is wired instead, so
+    // tests and the cold-start demo run without a SendGrid API key.
+    implementation("com.sendgrid:sendgrid-java:4.10.3")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
