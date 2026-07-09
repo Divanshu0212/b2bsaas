@@ -82,6 +82,19 @@ data:
         access: proxy
         url: http://tempo:3200
         editable: false
+      # T4.3 (STRETCH): Loki, with trace_id -> Tempo derived-field correlation.
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://loki:3100
+        editable: false
+        jsonData:
+          derivedFields:
+            - name: TraceID
+              matcherRegex: '"trace_id":"(\w+)"'
+              url: '$${__value.raw}'
+              datasourceUid: tempo
 ---
 apiVersion: v1
 kind: ConfigMap

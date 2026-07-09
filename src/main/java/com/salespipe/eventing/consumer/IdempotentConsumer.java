@@ -111,9 +111,12 @@ public abstract class IdempotentConsumer {
             return;
         }
 
-        MDC.put("eventId", event.eventId().toString());
-        MDC.put("orgId", event.orgId());
-        MDC.put("traceId", event.traceId());
+        // Snake_case keys so the JSON encoder (logback-spring.xml) actually surfaces
+        // org_id/trace_id on consumer-thread logs, matching the HTTP path's TenantFilter
+        // and Loki's derived-field trace correlation (T4.3). event_id is consumer-only.
+        MDC.put("event_id", event.eventId().toString());
+        MDC.put("org_id", event.orgId());
+        MDC.put("trace_id", event.traceId());
         // T4.2: rehydrate the producer-side trace from the `traceparent` header so the
         // handler's auto-instrumented spans (DB writes, downstream calls) attach to the
         // same trace as the originating request across the async Kafka boundary. No-op
@@ -122,9 +125,9 @@ public abstract class IdempotentConsumer {
         try (Scope ignored = extracted.makeCurrent()) {
             processWithRetry(record, event);
         } finally {
-            MDC.remove("eventId");
-            MDC.remove("orgId");
-            MDC.remove("traceId");
+            MDC.remove("event_id");
+            MDC.remove("org_id");
+            MDC.remove("trace_id");
         }
         ack.acknowledge();
     }
