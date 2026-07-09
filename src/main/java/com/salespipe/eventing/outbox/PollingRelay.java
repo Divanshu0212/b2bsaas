@@ -117,7 +117,11 @@ public class PollingRelay {
             // IS the topic name. Blocking get() here is deliberate — this method must
             // not mark the row published until the send is acknowledged, or a crash
             // between "mark" and "actually delivered" would silently drop the event.
-            publisher.publish(row.eventType(), envelope).get(30, TimeUnit.SECONDS);
+            // T4.2: propagate the trace_id (a W3C traceparent captured at outbox-write
+            // time) as a Kafka header so the consumer rehydrates the span context — the
+            // outbox is an async DB hop that breaks in-process OTel context, so the trace
+            // must ride the message, not the thread.
+            publisher.publish(row.eventType(), envelope, row.traceId()).get(30, TimeUnit.SECONDS);
 
             int updated = jdbc.update("UPDATE outbox_events SET published = true WHERE id = ?", row.id());
             if (updated == 0) {

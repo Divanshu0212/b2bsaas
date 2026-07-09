@@ -7,3 +7,5 @@ data:
   DB_URL: jdbc:postgresql://postgres:5432/salespipe
   DB_USER: salespipe
   REDIS_HOST: redis
+  # T4.2: export traces to the in-cluster Tempo (k8s/tempo.yaml), OTLP/gRPC.
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317

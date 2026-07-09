@@ -75,6 +75,13 @@ data:
         url: http://prometheus:9090
         isDefault: true
         editable: false
+      # T4.2: Tempo trace backend datasource.
+      - name: Tempo
+        uid: tempo
+        type: tempo
+        access: proxy
+        url: http://tempo:3200
+        editable: false
 ---
 apiVersion: v1
 kind: ConfigMap

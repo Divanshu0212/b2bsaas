@@ -118,3 +118,23 @@ management:
     metrics:
       export:
         enabled: true
+
+# T4.2: OpenTelemetry tracing. The Spring Boot starter auto-instruments HTTP, JDBC and
+# Kafka, and installs the W3C traceparent propagator that OutboxRecorder/EventPublisher/
+# IdempotentConsumer use to carry the trace across the async outbox->Kafka boundary.
+# Traces export via OTLP/gRPC to Tempo (compose service `tempo`, receiver on 4317).
+otel:
+  service:
+    name: ${OTEL_SERVICE_NAME:salespipe}
+  traces:
+    exporter: ${OTEL_TRACES_EXPORTER:otlp}
+    # Sample everything locally; dial down in prod via OTEL_TRACES_SAMPLER_ARG.
+    sampler: ${OTEL_TRACES_SAMPLER:always_on}
+  metrics:
+    exporter: none
+  logs:
+    exporter: none
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+      protocol: grpc

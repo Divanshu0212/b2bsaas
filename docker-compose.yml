@@ -147,6 +147,9 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       SCORING_SERVICE_URL: http://lead-scoring:8000
+      # T4.2: export traces (OTLP/gRPC) to Tempo. OutboxRecorder/EventPublisher/
+      # IdempotentConsumer carry the trace across the async Kafka boundary via traceparent.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
     ports: ["8080:8080"]
 
   # T4.1: Prometheus scrapes /actuator/prometheus on `app` per observability/prometheus.yml;
@@ -184,5 +187,22 @@ services:
       timeout: 5s
       retries: 12
 
+  # T4.2: Grafana Tempo — OTLP trace backend. Receives spans from `app` on 4317 (gRPC),
+  # queried by Grafana via the Tempo datasource (observability/grafana/provisioning).
+  # Single-binary local config in observability/tempo.yml (filesystem storage).
+  tempo:
+    image: grafana/tempo:2.6.0
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./observability/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    ports: ["3200:3200", "4317:4317"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3200/ready >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
 volumes:
   mlflow-data:
+  tempo-data:

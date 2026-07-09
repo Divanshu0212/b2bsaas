@@ -193,10 +193,18 @@ class IdempotentConsumerIT extends PostgresRedisTestBase {
         // DynamicPropertySource override above) then check the DLQ topic.
         assertThat(poisonConsumer.awaitAttempts(2, Duration.ofSeconds(30))).isTrue();
 
+        // POISON_TOPIC (EMAIL_EVENT_RECEIVED) is also consumed by the real
+        // EmailFeatureConsumer, which fails this synthetic payload with its own
+        // "Invalid UUID" error and DLQs it too — same DLQ topic, different consumer
+        // group. So don't grab the first DLQ record; find the one this test's
+        // AlwaysFailingConsumer produced (its failure reason carries "boom").
         String dlqTopic = Topics.dlqFor(POISON_TOPIC);
-        ConsumerRecord<String, byte[]> dlqRecord = consumeOne(dlqTopic);
+        ConsumerRecord<String, byte[]> dlqRecord = consumeMatching(dlqTopic,
+            r -> dealId.equals(r.key())
+                && headerValue(r, DlqPublisher.HEADER_FAILURE_REASON) != null
+                && headerValue(r, DlqPublisher.HEADER_FAILURE_REASON).contains("boom"));
 
-        assertThat(dlqRecord).isNotNull();
+        assertThat(dlqRecord).as("DLQ record from the poison consumer (reason contains 'boom')").isNotNull();
         assertThat(dlqRecord.key()).isEqualTo(dealId);
         String reasonHeader = headerValue(dlqRecord, DlqPublisher.HEADER_FAILURE_REASON);
         assertThat(reasonHeader).isNotBlank();
@@ -257,6 +265,34 @@ class IdempotentConsumerIT extends PostgresRedisTestBase {
                 return null;
             }
             return records.iterator().next();
+        }
+    }
+
+    /**
+     * Polls {@code topic} until a record satisfying {@code predicate} is seen (or the
+     * 30s deadline passes). Needed where more than one consumer group can land records
+     * on the same DLQ topic and the test only cares about one of them.
+     */
+    private ConsumerRecord<String, byte[]> consumeMatching(
+        String topic, java.util.function.Predicate<ConsumerRecord<String, byte[]>> predicate
+    ) {
+        Map<String, Object> consumerProps = Map.of(
+            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers(),
+            ConsumerConfig.GROUP_ID_CONFIG, "dlq-test-" + UUID.randomUUID(),
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+        );
+        try (KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(
+                consumerProps, new StringDeserializer(), new org.apache.kafka.common.serialization.ByteArrayDeserializer())) {
+            consumer.subscribe(List.of(topic));
+            long deadline = System.currentTimeMillis() + 30_000;
+            while (System.currentTimeMillis() < deadline) {
+                for (ConsumerRecord<String, byte[]> r : consumer.poll(Duration.ofSeconds(2))) {
+                    if (predicate.test(r)) {
+                        return r;
+                    }
+                }
+            }
+            return null;
         }
     }
 

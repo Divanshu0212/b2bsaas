@@ -36,6 +36,12 @@ dependencies {
     // (JVM/Hikari/Kafka-listener meters are auto-bound once this registry is on the
     // classpath; no code needed for those).
     implementation("io.micrometer:micrometer-registry-prometheus")
+    // T4.2: OpenTelemetry auto-instrumentation (HTTP/JDBC/Kafka) + OTLP export to Tempo.
+    // Version is managed by the opentelemetry-instrumentation-bom imported below, so no
+    // version literal here. The manual trace_id capture/rehydrate across the async outbox
+    // boundary (OutboxRecorder -> Kafka header -> IdempotentConsumer) uses the OTel API
+    // that this starter brings transitively (io.opentelemetry:opentelemetry-api).
+    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.flywaydb:flyway-core")
@@ -87,6 +93,8 @@ dependencyManagement {
     imports {
         mavenBom("org.springframework.modulith:spring-modulith-bom:${property("springModulithVersion")}")
         mavenBom("org.testcontainers:testcontainers-bom:1.21.4")
+        // T4.2: pins the OpenTelemetry Spring Boot starter + OTel API/SDK versions.
+        mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.10.0")
     }
 }
 
