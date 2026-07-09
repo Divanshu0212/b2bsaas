@@ -24,6 +24,9 @@ extra["springModulithVersion"] = "1.3.1"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
+    // T3.4: WebClient for the resilient call to the Python scoring service. webflux is
+    // pulled in for WebClient only; the app stays servlet-based (MVC) otherwise.
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -70,6 +73,10 @@ dependencies {
     testImplementation("com.redis:testcontainers-redis:2.2.2")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+    // T3.3: contract test for the Python scoring service's POST /internal/score. WireMock
+    // stubs the ML endpoint so ScoringClient's request/response mapping + resilience
+    // fallback are verified without a live Python service.
+    testImplementation("org.wiremock:wiremock-standalone:3.9.2")
 }
 
 dependencyManagement {

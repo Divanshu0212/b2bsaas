@@ -42,10 +42,22 @@ public class OutboxRecorder {
      * is already active on the calling thread.
      */
     public OutboxEvent record(String aggregateType, String aggregateId, String eventType, JsonNode payload) {
+        return record(tenant.getOrgId(), aggregateType, aggregateId, eventType, payload);
+    }
+
+    /**
+     * Same as {@link #record(String, String, String, JsonNode)} but with an explicit
+     * {@code orgId}, for callers that run <b>off the request thread</b> where the
+     * {@code @RequestScope} {@link TenantContext} is not populated — notably async score
+     * recompute driven from a Kafka consumer thread (T3.4's {@code ScoringService}). The
+     * org is already known from the inbound event, so pass it directly rather than
+     * relying on request scope.
+     */
+    public OutboxEvent record(UUID orgId, String aggregateType, String aggregateId, String eventType, JsonNode payload) {
         String payloadJson = writePayload(payload);
         OutboxEvent event = new OutboxEvent(
             UUID.randomUUID(),
-            tenant.getOrgId(),
+            orgId,
             aggregateType,
             aggregateId,
             eventType,

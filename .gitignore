@@ -15,5 +15,10 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
+*.egg-info/
+# MLflow local backend / training artifacts
+mlruns/
+mlartifacts/
 # Secrets
 *.env
