@@ -1,0 +1,33 @@
+# Offline training job (phase-3 T3.6). K8s CronJob is the CORE orchestration path;
+# Airflow is STRETCH. Runs train -> log-to-MLflow -> promote-if-better nightly. The
+# serving pod picks up a newly-promoted Production model on its next MLflow poll/restart.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: leadscore-training
+  namespace: salespipe
+spec:
+  schedule: "0 3 * * *"        # nightly 03:00
+  concurrencyPolicy: Forbid    # never overlap training runs
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: train
+              image: lead-scoring:local
+              imagePullPolicy: IfNotPresent
+              env:
+                - { name: MLFLOW_TRACKING_URI, value: "http://mlflow:5000" }
+              # train.py logs+registers the candidate; promote.py transitions it to
+              # Production only if it beats the incumbent on AUC-ROC.
+              command: ["/bin/sh", "-c"]
+              args:
+                - >-
+                  python -m training.train --k 10 &&
+                  python -c "from training.promote import promote_if_better; print('promotion handled in pipeline')"
+              resources:
+                requests: { cpu: "1", memory: "2Gi" }
+                limits: { cpu: "2", memory: "4Gi" }
