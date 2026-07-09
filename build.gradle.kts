@@ -3,6 +3,9 @@ plugins {
     jacoco
     id("org.springframework.boot") version "3.4.1"
     id("io.spring.dependency-management") version "1.1.7"
+    // T4.9: Gatling load tests live in src/gatling/scala, run via ./gradlew gatlingRun
+    // against a running app (see loadtest/README.md).
+    id("io.gatling.gradle") version "3.13.1.2"
 }
 
 group = "com.salespipe"
