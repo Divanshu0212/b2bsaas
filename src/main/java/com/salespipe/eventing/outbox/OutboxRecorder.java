@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.salespipe.common.tenant.TenantContext;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.TraceFlags;
 import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -17,11 +20,12 @@ import org.springframework.stereotype.Service;
  * rolls back atomically with the business write it describes; wrapping it in its own
  * transaction would defeat that.
  *
- * <p>{@code trace_id} is read from MDC ({@code trace_id}, the key
- * {@code logback-spring.xml} already ships to the log encoder). Real OTel propagation
- * lands in Phase 4 (overview §6.2) — until then this is a placeholder value, per the
- * plan ("populated properly in Phase 4; placeholder MDC value acceptable now"), and
- * falls back to {@code null} when absent rather than inventing a trace id.
+ * <p>{@code trace_id} (T4.2) is the current span's W3C traceparent
+ * ({@code 00-<traceId>-<spanId>-<flags>}), captured here at outbox-write time so the
+ * async relay can re-emit it as a Kafka header and the consumer can rehydrate the span
+ * context — making request→outbox→relay→consumer one connected trace across the async
+ * boundary. Falls back to the {@code trace_id} MDC value, then {@code null}, when no
+ * OTel span is active (e.g. a plain background thread) rather than inventing a trace id.
  */
 @Service
 public class OutboxRecorder {
@@ -62,9 +66,24 @@ public class OutboxRecorder {
             aggregateId,
             eventType,
             payloadJson,
-            MDC.get("trace_id")
+            currentTraceparent()
         );
         return repository.save(event);
+    }
+
+    /**
+     * The active span's W3C traceparent, or the {@code trace_id} MDC fallback, or null.
+     * Built by hand from the {@link SpanContext} (rather than pulling in the OTel
+     * propagator API) since the format is fixed: {@code 00-<32 hex traceId>-<16 hex
+     * spanId>-<2 hex flags>}.
+     */
+    private String currentTraceparent() {
+        SpanContext ctx = Span.current().getSpanContext();
+        if (ctx.isValid()) {
+            String flags = ctx.getTraceFlags() != null ? ctx.getTraceFlags().asHex() : TraceFlags.getDefault().asHex();
+            return "00-" + ctx.getTraceId() + "-" + ctx.getSpanId() + "-" + flags;
+        }
+        return MDC.get("trace_id");
     }
 
     private String writePayload(JsonNode payload) {

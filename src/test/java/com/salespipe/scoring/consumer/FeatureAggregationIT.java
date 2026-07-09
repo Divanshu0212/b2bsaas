@@ -126,9 +126,7 @@ class FeatureAggregationIT extends PostgresRedisTestBase {
         long deadline = System.currentTimeMillis() + 30_000;
         Integer count = null;
         while (System.currentTimeMillis() < deadline) {
-            count = jdbc.queryForObject(
-                "SELECT email_open_count FROM lead_features WHERE org_id = ? AND lead_id = ?",
-                Integer.class, orgId, leadId);
+            count = currentOpenCount();
             if (count != null && count >= expected) {
                 break;
             }
@@ -136,9 +134,14 @@ class FeatureAggregationIT extends PostgresRedisTestBase {
         }
         // Give a redelivery a chance to (wrongly) double-count before asserting exactly-once.
         Thread.sleep(1000);
-        count = jdbc.queryForObject(
+        assertThat(currentOpenCount()).isEqualTo(expected);
+    }
+
+    /** email_open_count for the seeded lead, or null if the feature row isn't written yet. */
+    private Integer currentOpenCount() {
+        return jdbc.query(
             "SELECT email_open_count FROM lead_features WHERE org_id = ? AND lead_id = ?",
-            Integer.class, orgId, leadId);
-        assertThat(count).isEqualTo(expected);
+            rs -> rs.next() ? rs.getInt("email_open_count") : null,
+            orgId, leadId);
     }
 }

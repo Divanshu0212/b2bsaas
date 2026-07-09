@@ -1,0 +1,33 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+  # T4.2: Tempo trace backend. tracesToLogs/nodeGraph left default; the important bit is
+  # this datasource exists so a PATCH /deals/{id}/stage trace (request→outbox→relay→
+  # consumers→DB→notification) is queryable in Grafana Explore.
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+  # T4.3 (STRETCH): Loki log aggregation. The derivedField turns a trace_id in a log line
+  # into a clickable link to the matching trace in Tempo — the log<->trace correlation
+  # loop the task calls for.
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: '"trace_id":"(\w+)"'
+          url: '$${__value.raw}'
+          datasourceUid: tempo

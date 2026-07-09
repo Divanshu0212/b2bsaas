@@ -11,6 +11,9 @@ import com.salespipe.eventing.consumer.ProcessedEventRepository;
 import com.salespipe.notification.domain.Notification;
 import com.salespipe.notification.infra.LeadOwnerLookup;
 import com.salespipe.notification.infra.NotificationRepository;
+import com.salespipe.notification.infra.OwnerEmailLookup;
+import com.salespipe.notification.infra.email.EmailMessage;
+import com.salespipe.notification.infra.email.EmailProvider;
 import io.github.resilience4j.retry.RetryRegistry;
 import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -39,6 +42,8 @@ public class HotLeadNotificationConsumer extends IdempotentConsumer {
 
     private final NotificationRepository notifications;
     private final LeadOwnerLookup leadOwnerLookup;
+    private final OwnerEmailLookup ownerEmailLookup;
+    private final EmailProvider emailProvider;
     private final ObjectMapper objectMapper;
     private final double threshold;
 
@@ -50,12 +55,16 @@ public class HotLeadNotificationConsumer extends IdempotentConsumer {
         RetryRegistry retryRegistry,
         NotificationRepository notifications,
         LeadOwnerLookup leadOwnerLookup,
+        OwnerEmailLookup ownerEmailLookup,
+        EmailProvider emailProvider,
         ObjectMapper objectMapper,
         @Value("${app.scoring.hot-lead-threshold:0.75}") double threshold
     ) {
         super(normalizer, processedEventRepository, dlqPublisher, transactionTemplate, retryRegistry);
         this.notifications = notifications;
         this.leadOwnerLookup = leadOwnerLookup;
+        this.ownerEmailLookup = ownerEmailLookup;
+        this.emailProvider = emailProvider;
         this.objectMapper = objectMapper;
         this.threshold = threshold;
     }
@@ -80,6 +89,17 @@ public class HotLeadNotificationConsumer extends IdempotentConsumer {
         notifications.save(new Notification(
             UUID.randomUUID(), orgId, ownerId, TYPE_HOT_LEAD, payload.toString()
         ));
+
+        // T4.4: email the owner. Idempotency key is stable per (group, event) so a
+        // redelivered score-updated event never double-emails. Best-effort — a missing
+        // owner email or provider failure must not fail (and DLQ) the notification.
+        String ownerEmail = ownerEmailLookup.findEmail(orgId, ownerId);
+        if (ownerEmail != null) {
+            emailProvider.send(
+                new EmailMessage(ownerEmail, "Hot lead alert",
+                    "A lead crossed the hot-lead threshold. Score payload: " + payload),
+                GROUP + ":" + event.eventId());
+        }
     }
 
     @KafkaListener(

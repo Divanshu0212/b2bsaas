@@ -1,7 +1,11 @@
 plugins {
     java
+    jacoco
     id("org.springframework.boot") version "3.4.1"
     id("io.spring.dependency-management") version "1.1.7"
+    // T4.9: Gatling load tests live in src/gatling/scala, run via ./gradlew gatlingRun
+    // against a running app (see loadtest/README.md).
+    id("io.gatling.gradle") version "3.13.1.2"
 }
 
 group = "com.salespipe"
@@ -32,6 +36,16 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // T4.1: Prometheus registry so /actuator/prometheus produces scrape-able output
+    // (JVM/Hikari/Kafka-listener meters are auto-bound once this registry is on the
+    // classpath; no code needed for those).
+    implementation("io.micrometer:micrometer-registry-prometheus")
+    // T4.2: OpenTelemetry auto-instrumentation (HTTP/JDBC/Kafka) + OTLP export to Tempo.
+    // Version is managed by the opentelemetry-instrumentation-bom imported below, so no
+    // version literal here. The manual trace_id capture/rehydrate across the async outbox
+    // boundary (OutboxRecorder -> Kafka header -> IdempotentConsumer) uses the OTel API
+    // that this starter brings transitively (io.opentelemetry:opentelemetry-api).
+    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.flywaydb:flyway-core")
@@ -62,6 +76,11 @@ dependencies {
     // "bucket4j-core"/"bucket4j-redis" artifact for this version line.
     implementation("com.bucket4j:bucket4j_jdk17-core:8.14.0")
     implementation("com.bucket4j:bucket4j_jdk17-lettuce:8.14.0")
+    // T4.4: real SendGrid client for outbound hot-lead/deal-stage emails, wrapped in the
+    // emailProvider resilience4j circuit-breaker/retry/timelimiter below. Config-gated:
+    // with app.email.enabled=false (default) a NoopEmailProvider is wired instead, so
+    // tests and the cold-start demo run without a SendGrid API key.
+    implementation("com.sendgrid:sendgrid-java:4.10.3")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
@@ -83,7 +102,32 @@ dependencyManagement {
     imports {
         mavenBom("org.springframework.modulith:spring-modulith-bom:${property("springModulithVersion")}")
         mavenBom("org.testcontainers:testcontainers-bom:1.21.4")
+        // T4.2: pins the OpenTelemetry Spring Boot starter + OTel API/SDK versions.
+        mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.10.0")
     }
 }
 
 tasks.withType<Test> { useJUnitPlatform() }
+
+// T4.8: JaCoCo coverage. The report is always produced after the test run; the gate
+// (jacocoTestCoverageVerification) enforces a line-coverage floor and is wired into
+// `check` so CI fails if coverage regresses below the bar.
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports { xml.required.set(true); html.required.set(true) }
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.60".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.named("check") { dependsOn(tasks.jacocoTestCoverageVerification) }
+tasks.jacocoTestCoverageVerification { dependsOn(tasks.test) }

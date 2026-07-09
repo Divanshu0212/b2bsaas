@@ -5,7 +5,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -81,7 +80,9 @@ class ScoringClientContractTest {
                 assertThat(f.feature()).isEqualTo("email_click_count");
                 assertThat(f.impact()).isEqualTo(0.18);
             });
-        verify(postRequestedFor(urlEqualTo("/internal/score")));
+        // Instance verify (not the static WireMock.verify, which targets the default
+        // client on :8080 and fails against this dynamic-port server).
+        wm.verify(postRequestedFor(urlEqualTo("/internal/score")));
     }
 
     @Test

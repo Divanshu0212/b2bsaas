@@ -1,7 +1,9 @@
 package com.salespipe.eventing.producer;
 
 import com.salespipe.eventing.EventEnvelope;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class EventPublisher {
 
+    /**
+     * W3C Trace Context header name (T4.2). Carries the traceparent captured at
+     * outbox-write time across the async Kafka boundary so a consumer can rehydrate the
+     * span context and the whole request→outbox→relay→consumer flow shows as one trace.
+     */
+    public static final String TRACEPARENT_HEADER = "traceparent";
+
     private final KafkaTemplate<String, EventEnvelope> kafkaTemplate;
 
     public EventPublisher(KafkaTemplate<String, EventEnvelope> kafkaTemplate) {
@@ -25,6 +34,22 @@ public class EventPublisher {
     }
 
     public CompletableFuture<SendResult<String, EventEnvelope>> publish(String topic, EventEnvelope event) {
-        return kafkaTemplate.send(topic, event.aggregateId(), event);
+        return publish(topic, event, null);
+    }
+
+    /**
+     * Publishes with an explicit {@code traceparent} header (T4.2). When {@code traceparent}
+     * is null/blank no header is added — an event recorded before any active span (e.g. a
+     * background job) simply carries no trace, rather than a bogus one.
+     */
+    public CompletableFuture<SendResult<String, EventEnvelope>> publish(
+        String topic, EventEnvelope event, String traceparent
+    ) {
+        ProducerRecord<String, EventEnvelope> record =
+            new ProducerRecord<>(topic, event.aggregateId(), event);
+        if (traceparent != null && !traceparent.isBlank()) {
+            record.headers().add(TRACEPARENT_HEADER, traceparent.getBytes(StandardCharsets.UTF_8));
+        }
+        return kafkaTemplate.send(record);
     }
 }

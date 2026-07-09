@@ -2,8 +2,14 @@ package com.salespipe.eventing.consumer;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.context.propagation.TextMapGetter;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -105,17 +111,59 @@ public abstract class IdempotentConsumer {
             return;
         }
 
-        MDC.put("eventId", event.eventId().toString());
-        MDC.put("orgId", event.orgId());
-        MDC.put("traceId", event.traceId());
-        try {
+        // Snake_case keys so the JSON encoder (logback-spring.xml) actually surfaces
+        // org_id/trace_id on consumer-thread logs, matching the HTTP path's TenantFilter
+        // and Loki's derived-field trace correlation (T4.3). event_id is consumer-only.
+        MDC.put("event_id", event.eventId().toString());
+        MDC.put("org_id", event.orgId());
+        MDC.put("trace_id", event.traceId());
+        // T4.2: rehydrate the producer-side trace from the `traceparent` header so the
+        // handler's auto-instrumented spans (DB writes, downstream calls) attach to the
+        // same trace as the originating request across the async Kafka boundary. No-op
+        // when the header is absent (older messages / non-traced producers).
+        Context extracted = extractTraceContext(record);
+        try (Scope ignored = extracted.makeCurrent()) {
             processWithRetry(record, event);
         } finally {
-            MDC.remove("eventId");
-            MDC.remove("orgId");
-            MDC.remove("traceId");
+            MDC.remove("event_id");
+            MDC.remove("org_id");
+            MDC.remove("trace_id");
         }
         ack.acknowledge();
+    }
+
+    /** Reads a single Kafka header value as UTF-8, or null if absent. */
+    private static final TextMapGetter<ConsumerRecord<String, byte[]>> HEADER_GETTER =
+        new TextMapGetter<>() {
+            @Override
+            public Iterable<String> keys(ConsumerRecord<String, byte[]> carrier) {
+                java.util.List<String> keys = new java.util.ArrayList<>();
+                carrier.headers().forEach(h -> keys.add(h.key()));
+                return keys;
+            }
+
+            @Override
+            public String get(ConsumerRecord<String, byte[]> carrier, String key) {
+                if (carrier == null) {
+                    return null;
+                }
+                Header header = carrier.headers().lastHeader(key);
+                return header == null || header.value() == null
+                    ? null
+                    : new String(header.value(), StandardCharsets.UTF_8);
+            }
+        };
+
+    /**
+     * Extracts the W3C trace context from the record headers (the {@code traceparent} set
+     * by {@link com.salespipe.eventing.producer.EventPublisher}). Uses the globally
+     * configured propagator (the OTel Spring Boot starter installs the W3C one), so a
+     * consumer with tracing disabled or a header-less message just gets the root context.
+     */
+    private Context extractTraceContext(ConsumerRecord<String, byte[]> record) {
+        return GlobalOpenTelemetry.getPropagators()
+            .getTextMapPropagator()
+            .extract(Context.current(), record, HEADER_GETTER);
     }
 
     private void processWithRetry(ConsumerRecord<String, byte[]> record, InboundEvent event) {

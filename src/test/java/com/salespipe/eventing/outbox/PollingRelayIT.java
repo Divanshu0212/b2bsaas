@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
@@ -183,15 +182,21 @@ class PollingRelayIT {
                 consumerProps, keyDeserializer, valueDeserializer)) {
             consumer.subscribe(List.of(Topics.DEAL_STAGE_CHANGED));
 
-            ConsumerRecords<String, EventEnvelope> records = ConsumerRecords.empty();
+            // Other tests in this class publish to the same DEAL_STAGE_CHANGED topic on
+            // the shared Kafka container, so don't assume exclusive ownership — locate
+            // THIS test's record by its eventId among whatever is on the topic.
+            ConsumerRecord<String, EventEnvelope> record = null;
             long deadline = System.currentTimeMillis() + 30_000;
-            while (records.isEmpty() && System.currentTimeMillis() < deadline) {
-                records = consumer.poll(Duration.ofSeconds(2));
+            while (record == null && System.currentTimeMillis() < deadline) {
+                for (ConsumerRecord<String, EventEnvelope> r : consumer.poll(Duration.ofSeconds(2))) {
+                    if (eventId.equals(r.value().eventId())) {
+                        record = r;
+                        break;
+                    }
+                }
             }
 
-            assertThat(records.count()).isEqualTo(1);
-            ConsumerRecord<String, EventEnvelope> record = records.iterator().next();
-
+            assertThat(record).as("relayed record for eventId %s", eventId).isNotNull();
             assertThat(record.key()).isEqualTo(dealId);
             EventEnvelope received = record.value();
             assertThat(received.eventId()).isEqualTo(eventId);
@@ -201,6 +206,62 @@ class PollingRelayIT {
             assertThat(received.aggregateId()).isEqualTo(dealId);
             assertThat(received.traceId()).isEqualTo("trace-poll-1");
             assertThat(received.payload().get("dealId").asText()).isEqualTo(dealId);
+        }
+    }
+
+    @Test
+    void relayedMessageCarriesTraceparentHeaderMatchingOutboxTraceId() throws Exception {
+        // T4.2: the outbox row's trace_id is a W3C traceparent captured at write time
+        // (OutboxRecorder). The relay must re-emit it as a `traceparent` Kafka header so
+        // the consumer can rehydrate the trace context across the async boundary.
+        String traceId = "0af7651916cd43dd8448eb211c80319c";
+        String traceparent = "00-" + traceId + "-b7ad6b7169203331-01";
+        UUID eventId = UUID.randomUUID();
+        String dealId = "deal-trace-1";
+        jdbc.update(
+            "INSERT INTO outbox_events (id, org_id, aggregate_type, aggregate_id, event_type, payload, trace_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?::jsonb, ?)",
+            eventId, orgId, "deal", dealId, Topics.DEAL_STAGE_CHANGED,
+            "{\"dealId\":\"" + dealId + "\",\"toStageId\":\"stage-1\"}", traceparent
+        );
+
+        relay.relay();
+
+        String schemaRegistryUrl = "http://" + schemaRegistry.getHost() + ":" + schemaRegistry.getMappedPort(8081);
+        Map<String, Object> consumerProps = Map.of(
+            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers(),
+            ConsumerConfig.GROUP_ID_CONFIG, "trace-header-test-" + UUID.randomUUID(),
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+            KafkaJsonSchemaDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl,
+            KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, EventEnvelope.class.getName()
+        );
+        StringDeserializer keyDeserializer = new StringDeserializer();
+        KafkaJsonSchemaDeserializer<EventEnvelope> valueDeserializer = new KafkaJsonSchemaDeserializer<>();
+        keyDeserializer.configure(consumerProps, true);
+        valueDeserializer.configure(consumerProps, false);
+
+        try (KafkaConsumer<String, EventEnvelope> consumer = new KafkaConsumer<>(
+                consumerProps, keyDeserializer, valueDeserializer)) {
+            consumer.subscribe(List.of(Topics.DEAL_STAGE_CHANGED));
+            // Shared topic across tests — pick out this test's record by eventId.
+            ConsumerRecord<String, EventEnvelope> record = null;
+            long deadline = System.currentTimeMillis() + 30_000;
+            while (record == null && System.currentTimeMillis() < deadline) {
+                for (ConsumerRecord<String, EventEnvelope> r : consumer.poll(Duration.ofSeconds(2))) {
+                    if (eventId.equals(r.value().eventId())) {
+                        record = r;
+                        break;
+                    }
+                }
+            }
+            assertThat(record).as("relayed record for eventId %s", eventId).isNotNull();
+
+            var header = record.headers().lastHeader("traceparent");
+            assertThat(header).as("relayed message must carry a traceparent header").isNotNull();
+            String headerValue = new String(header.value(), java.nio.charset.StandardCharsets.UTF_8);
+            assertThat(headerValue).isEqualTo(traceparent);
+            // trace-id segment (positions 3..35 of the W3C traceparent) matches the stored one.
+            assertThat(headerValue).contains(traceId);
         }
     }
 

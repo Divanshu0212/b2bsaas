@@ -217,7 +217,32 @@ flowchart LR
 - **Tracing** — OpenTelemetry, `trace_id` propagated in Kafka headers across the async boundary.
 - **Logging** — structured JSON with `org_id` / `trace_id` / `user_id` in MDC; Loki/ELK optional.
 - **Resilience** — circuit breakers (ML + email provider), retries + DLQs, bulkheads, idempotency keys, timeouts on every outbound call; Java 21 virtual threads for I/O-bound consumers.
-- **Performance** — HikariCP and K8s resource limits sized from **Gatling** load tests; published p99 latency + consumer lag in the README once measured; reporting reads target a read-replica.
+- **Performance** — HikariCP and K8s resource limits sized from **Gatling** load tests; published p99 latency + consumer lag below; reporting reads target a read-replica.
+
+### Load & chaos test results
+
+Load scenarios (Gatling) and the runbook live in [`loadtest/README.md`](loadtest/README.md);
+the simulations are in [`src/gatling/scala`](src/gatling/scala). Assertions baked into each
+simulation: Kanban stage-PATCH p99 < 2s at 50 concurrent users with ≥95% success (409s under
+optimistic-lock contention are expected, not failures); lead-list pagination p99 < 1s at 100
+req/s; tracking-pixel storm zero 5xx at 300 req/s.
+
+> **Environment:** publish the numbers from a run on your target hardware — Gatling on a
+> laptop gives laptop numbers. State the host (CPU/RAM), whether Postgres/Kafka shared the
+> same Docker engine, and the concurrency, so the p99/lag figures are interpretable. Fill
+> the table below from `build/reports/gatling/` after a run; derive `DB_POOL_MAX` and the K8s
+> `resources` from the saturation point (see the loadtest README).
+
+| Scenario | Concurrency | p95 | p99 | Notes |
+|---|---|---|---|---|
+| Kanban stage burst | 50 | _run_ | _run_ | 409 = lock contention |
+| Lead pagination | 100 req/s | _run_ | _run_ | read path |
+| Pixel storm | 300 req/s | _run_ | _run_ | public, rate-limited |
+
+**Chaos-lite (measured, `ConsumerKillNoLossIT`):** a consumer killed mid-drain of a 300-event
+burst and restarted recovers to **exactly-once** — all 300 events processed, zero lost, zero
+double-processed (verified via `processed_events` count). This is the transactional-outbox +
+idempotent-consumer guarantee holding across a consumer crash.
 
 ---
 

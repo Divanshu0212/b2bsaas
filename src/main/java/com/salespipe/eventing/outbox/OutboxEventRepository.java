@@ -10,4 +10,8 @@ import java.util.UUID;
  * {@code DealRepository} for primary-key reads. (Debezium/CDC and the T2.3 polling
  * relay read this table directly outside JPA.)
  */
-public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {}
+public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
+
+    /** T4.1: outbox relay lag meter source — rows not yet relayed (see {@code RelayLagMetrics}). */
+    long countByPublishedFalse();
+}

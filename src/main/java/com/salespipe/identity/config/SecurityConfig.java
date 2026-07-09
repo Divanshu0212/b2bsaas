@@ -1,5 +1,8 @@
 package com.salespipe.identity.config;
 
+import com.salespipe.common.ratelimit.ApiRateLimitFilter;
+import com.salespipe.common.ratelimit.ApiRateLimitProperties;
+import com.salespipe.common.ratelimit.ApiRateLimiter;
 import com.salespipe.common.tenant.TenantContext;
 import com.salespipe.common.tenant.TenantFilter;
 import com.salespipe.common.tenant.TenantFilterAspect;
@@ -18,7 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, ApiRateLimitProperties.class})
 public class SecurityConfig {
 
     @Bean
@@ -44,18 +47,33 @@ public class SecurityConfig {
         return new TenantFilter(tenantContext, filterAspect);
     }
 
+    /**
+     * T4.6 per-tenant API rate-limit filter. Plain {@code @Bean} (not {@code @Component})
+     * — same single-registration reasoning as the other chain filters. Wired after
+     * {@link TenantFilter} so the tenant is resolved before the quota is checked.
+     */
+    @Bean
+    public ApiRateLimitFilter apiRateLimitFilter(
+        ApiRateLimiter apiRateLimiter, TenantContext tenantContext, ApiRateLimitProperties properties
+    ) {
+        return new ApiRateLimitFilter(apiRateLimiter, tenantContext, properties);
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
-            TenantFilter tenantFilter) throws Exception {
+            TenantFilter tenantFilter, ApiRateLimitFilter apiRateLimitFilter) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(reg -> reg
                 .requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**",
-                    "/actuator/health/**", "/emails/**", "/webhooks/**", "/error").permitAll()
+                    "/actuator/health/**", "/actuator/prometheus", "/actuator/info",
+                    "/emails/**", "/webhooks/**", "/error").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(tenantFilter, JwtAuthFilter.class)
+            // After tenant resolution: enforce the per-tenant API quota before controllers.
+            .addFilterAfter(apiRateLimitFilter, TenantFilter.class)
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);
         return http.build();

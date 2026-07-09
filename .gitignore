@@ -22,3 +22,6 @@ mlruns/
 mlartifacts/
 # Secrets
 *.env
+
+# Phase 3 MLflow local sqlite backend (runtime artifact)
+ml/mlflow.db

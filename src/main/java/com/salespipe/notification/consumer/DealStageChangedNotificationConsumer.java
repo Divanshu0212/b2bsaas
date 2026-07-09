@@ -11,6 +11,9 @@ import com.salespipe.eventing.consumer.ProcessedEventRepository;
 import com.salespipe.notification.domain.Notification;
 import com.salespipe.notification.infra.DealOwnerLookup;
 import com.salespipe.notification.infra.NotificationRepository;
+import com.salespipe.notification.infra.OwnerEmailLookup;
+import com.salespipe.notification.infra.email.EmailMessage;
+import com.salespipe.notification.infra.email.EmailProvider;
 import io.github.resilience4j.retry.RetryRegistry;
 import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -45,6 +48,8 @@ public class DealStageChangedNotificationConsumer extends IdempotentConsumer {
 
     private final NotificationRepository notifications;
     private final DealOwnerLookup dealOwnerLookup;
+    private final OwnerEmailLookup ownerEmailLookup;
+    private final EmailProvider emailProvider;
     private final ObjectMapper objectMapper;
 
     public DealStageChangedNotificationConsumer(
@@ -55,11 +60,15 @@ public class DealStageChangedNotificationConsumer extends IdempotentConsumer {
         RetryRegistry retryRegistry,
         NotificationRepository notifications,
         DealOwnerLookup dealOwnerLookup,
+        OwnerEmailLookup ownerEmailLookup,
+        EmailProvider emailProvider,
         ObjectMapper objectMapper
     ) {
         super(normalizer, processedEventRepository, dlqPublisher, transactionTemplate, retryRegistry);
         this.notifications = notifications;
         this.dealOwnerLookup = dealOwnerLookup;
+        this.ownerEmailLookup = ownerEmailLookup;
+        this.emailProvider = emailProvider;
         this.objectMapper = objectMapper;
     }
 
@@ -84,6 +93,17 @@ public class DealStageChangedNotificationConsumer extends IdempotentConsumer {
             payload.toString()
         );
         notifications.save(notification);
+
+        // T4.4: email the deal owner, deduped per (group, event) so a redelivered event
+        // never double-emails. Best-effort — no owner email / provider failure must not
+        // fail the handler.
+        String ownerEmail = ownerEmailLookup.findEmail(orgId, ownerId);
+        if (ownerEmail != null) {
+            emailProvider.send(
+                new EmailMessage(ownerEmail, "Deal stage changed",
+                    "A deal you own changed stage. Details: " + payload),
+                GROUP + ":" + event.eventId());
+        }
     }
 
     @KafkaListener(

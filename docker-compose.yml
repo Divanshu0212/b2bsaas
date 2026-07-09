@@ -147,7 +147,89 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       SCORING_SERVICE_URL: http://lead-scoring:8000
+      # T4.2: export traces (OTLP/gRPC) to Tempo. OutboxRecorder/EventPublisher/
+      # IdempotentConsumer carry the trace across the async Kafka boundary via traceparent.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
     ports: ["8080:8080"]
+
+  # T4.1: Prometheus scrapes /actuator/prometheus on `app` per observability/prometheus.yml;
+  # alert rules (DLQ depth, consumer lag, CB open, error-rate SLO burn) live in
+  # observability/alerts.yml, mounted in alongside so rule_files' relative path resolves.
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports: ["9090:9090"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # T4.1: Grafana, provisioned (not click-ops) — datasource + dashboard providers under
+  # observability/grafana/provisioning point at the Prometheus service above and the
+  # checked-in dashboard JSON respectively.
+  grafana:
+    image: grafana/grafana:11.2.0
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/salespipe-dashboard.json:/etc/grafana/provisioning/dashboards/json/salespipe-dashboard.json:ro
+    ports: ["3000:3000"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # T4.2: Grafana Tempo — OTLP trace backend. Receives spans from `app` on 4317 (gRPC),
+  # queried by Grafana via the Tempo datasource (observability/grafana/provisioning).
+  # Single-binary local config in observability/tempo.yml (filesystem storage).
+  tempo:
+    image: grafana/tempo:2.6.0
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./observability/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    ports: ["3200:3200", "4317:4317"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3200/ready >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # T4.3 (STRETCH): Loki log aggregation. Promtail ships the app's JSON stdout here;
+  # Grafana's Loki datasource (observability/grafana/provisioning) derives a trace_id
+  # link into Tempo, closing the log<->trace correlation loop.
+  loki:
+    image: grafana/loki:3.2.0
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    ports: ["3100:3100"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  promtail:
+    image: grafana/promtail:3.2.0
+    command: ["-config.file=/etc/promtail/promtail.yml"]
+    depends_on:
+      loki:
+        condition: service_healthy
+    volumes:
+      - ./observability/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 volumes:
   mlflow-data:
+  tempo-data:
+  loki-data:
