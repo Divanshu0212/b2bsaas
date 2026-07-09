@@ -92,6 +92,41 @@ services:
       timeout: 5s
       retries: 20
 
+  # Phase 3 (T3.6): MLflow tracking + model registry. Local filesystem backend is the
+  # CORE-acceptable local fallback (S3/MinIO artifact store is STRETCH). The training
+  # CronJob logs+promotes here; the scoring service loads the Production model from it.
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.19.0
+    command: >-
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri /mlruns --artifacts-destination /mlruns
+    volumes: ["mlflow-data:/mlruns"]
+    ports: ["5000:5000"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Phase 3 (T3.2): Python FastAPI lead-scoring service. Loads the Production model from
+  # MLflow at startup; degrades to a heuristic fallback if none is registered yet, so the
+  # cold-start demo works before the first training run.
+  lead-scoring:
+    build: ./ml
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_MODEL_NAME: leadscore
+      MLFLOW_MODEL_STAGE: Production
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   app:
     build: .
     depends_on:
@@ -111,4 +146,8 @@ services:
       JWT_SECRET: compose-secret-min-256-bits-long-for-hs256-xxxxxxxxxxxxxxx
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SCORING_SERVICE_URL: http://lead-scoring:8000
     ports: ["8080:8080"]
+
+volumes:
+  mlflow-data:
