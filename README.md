@@ -475,4 +475,4 @@ are single-replica and dev-only (no PITR, no multi-AZ).
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
