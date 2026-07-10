@@ -96,6 +96,11 @@ export async function apiFetch<T>(path: string, opts: RequestOptions = {}): Prom
       res = await doFetch();
     } else {
       clearAccessToken();
+      // Refresh failed = session is gone. Bounce to login (browser only); the throw still
+      // propagates so callers/queries stop.
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      }
       throw new ApiError(401, await parseProblem(res), "Session expired");
     }
   }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { authApi } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,15 @@ import { Input } from "@/components/ui/input";
  * or /pipeline. Register creates a new org (the caller becomes its ADMIN).
  */
 export default function LoginPage() {
-  const router = useRouter();
+  // useSearchParams must sit under a Suspense boundary for static export.
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/pipeline";
 

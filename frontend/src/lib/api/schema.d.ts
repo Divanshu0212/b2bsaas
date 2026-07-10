@@ -57,26 +57,34 @@ export interface LeadResponse {
 
 export interface AccountRequest {
   name: string;
-  domain: string | null;
+  industry: string | null;
+  employeeCount: number | null;
+  website: string | null;
 }
 export interface AccountResponse {
   id: UUID;
   name: string;
-  domain: string | null;
+  industry: string | null;
+  employeeCount: number | null;
+  website: string | null;
 }
 
 export interface ContactRequest {
   accountId: UUID | null;
-  name: string;
+  firstName: string | null;
+  lastName: string | null;
   email: string | null;
   phone: string | null;
+  title: string | null;
 }
 export interface ContactResponse {
   id: UUID;
   accountId: UUID | null;
-  name: string;
+  firstName: string | null;
+  lastName: string | null;
   email: string | null;
   phone: string | null;
+  title: string | null;
 }
 
 export interface DealStage {
