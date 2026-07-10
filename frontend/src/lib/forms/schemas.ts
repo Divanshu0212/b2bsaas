@@ -11,13 +11,17 @@ const optionalString = z
   .string()
   .trim()
   .transform((s) => (s === "" ? null : s))
-  .nullable();
+  .nullable()
+  .optional()
+  .transform((s) => s ?? null);
 
 const optionalUuid = z
   .string()
   .trim()
   .transform((s) => (s === "" ? null : s))
   .nullable()
+  .optional()
+  .transform((s) => s ?? null)
   .refine((v) => v === null || z.string().uuid().safeParse(v).success, "Must be a valid id");
 
 export const leadStatusEnum = z.enum([
@@ -43,8 +47,8 @@ export const accountFormSchema = z.object({
   industry: optionalString,
   employeeCount: z
     .union([z.coerce.number().int().positive(), z.literal("")])
-    .transform((v) => (v === "" ? null : v))
-    .nullable(),
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
   website: optionalString,
 });
 export type AccountFormValues = z.input<typeof accountFormSchema>;
@@ -56,8 +60,8 @@ export const dealFormSchema = z.object({
   ownerId: optionalUuid,
   amount: z
     .union([z.coerce.number().nonnegative(), z.literal("")])
-    .transform((v) => (v === "" ? null : v))
-    .nullable(),
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
   currency: optionalString,
   expectedCloseDate: optionalString,
 });
