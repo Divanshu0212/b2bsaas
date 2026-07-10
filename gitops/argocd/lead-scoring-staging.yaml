@@ -1,0 +1,28 @@
+# lead-scoring staging Application (auto-sync).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: lead-scoring-staging
+  namespace: argocd
+spec:
+  project: salespipe
+  sources:
+    - repoURL: https://github.com/Divanshu0212/b2bsaas
+      targetRevision: main
+      path: charts/lead-scoring
+      helm:
+        valueFiles:
+          - values-staging.yaml
+          - $values/gitops/apps/lead-scoring-staging.values.yaml
+    - repoURL: https://github.com/Divanshu0212/b2bsaas
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: salespipe-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

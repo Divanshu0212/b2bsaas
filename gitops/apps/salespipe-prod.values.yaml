@@ -1,0 +1,3 @@
+# Prod image tag — promoted manually by copying a verified staging tag here, then syncing.
+image:
+  tag: sha-000000000000
