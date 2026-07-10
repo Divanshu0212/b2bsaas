@@ -2,31 +2,31 @@
 
 /*
   SalesPipe design tokens — "Ledger" direction. A sales pipeline is a financial statement:
-  stages, money, and scores set in columns like a printed ledger. Warm paper canvas, hairline
-  rules do all the structural work (no shadows, near-zero radius), a display serif (Fraunces)
-  carries titles + money, Inter carries UI. Accent is ink-teal — deliberately NOT trust-blue.
-  The cold→hot score ramp is retuned warm (brick, not fire-engine) so it belongs to the paper.
+  stages, money, and scores set in columns like a printed ledger. Cool white/slate canvas,
+  hairline rules do all the structural work (no shadows, near-zero radius), a display serif
+  (Fraunces) carries titles + money, Inter carries UI. Accent is indigo. The cold→hot score
+  ramp runs slate → amber → red so it stays legible on the cool paper.
 */
 :root {
-  --canvas: #f7f6f3; /* warm paper */
-  --surface: #fffefb; /* cards, rails — a shade warmer/brighter than canvas */
-  --hairline: #e4e1d9; /* warm 1px rules */
-  --ink: #17130e; /* primary text — near-black, warm */
-  --muted: #6b6459; /* secondary text, labels */
-  --faint: #a39c8e; /* disabled, meta */
+  --canvas: #f8fafc; /* cool paper — slate-50 */
+  --surface: #ffffff; /* cards, rails — clean white */
+  --hairline: #e2e8f0; /* cool 1px rules — slate-200 */
+  --ink: #0f172a; /* primary text — slate-900 */
+  --muted: #64748b; /* secondary text, labels — slate-500 */
+  --faint: #94a3b8; /* disabled, meta — slate-400 */
 
-  --accent: #0e5f59; /* ink-teal: actions, links, focus */
-  --accent-fg: #fffefb;
-  --accent-soft: #e6efed; /* teal-tinted paper for active states */
+  --accent: #4f46e5; /* indigo: actions, links, focus */
+  --accent-fg: #ffffff;
+  --accent-soft: #eef2ff; /* indigo-tinted paper for active states — indigo-50 */
 
-  /* score ramp: cold (low) -> warm -> hot (high), retuned to sit on paper */
-  --score-cold: #8a8578;
-  --score-warm: #c8791f;
-  --score-hot: #a52a1e; /* brick, not fire-engine */
+  /* score ramp: cold (low) -> warm -> hot (high) */
+  --score-cold: #64748b; /* slate */
+  --score-warm: #d97706; /* amber-600 */
+  --score-hot: #dc2626; /* red-600 */
 
-  --won: #2f6f4e;
-  --lost: #a52a1e;
-  --danger: #a52a1e;
+  --won: #059669; /* emerald-600 */
+  --lost: #dc2626;
+  --danger: #dc2626;
 }
 
 @theme inline {

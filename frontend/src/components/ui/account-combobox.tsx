@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
  * optional UUID. Keyboard: ↑/↓ move, Enter selects, Esc closes; click-away closes.
  *
  * Styled to match the editorial underline inputs — no chrome until focused, hairline rule,
- * teal on active. The trigger shows the chosen account's NAME while the form holds its ID.
+ * accent on active. The trigger shows the chosen account's NAME while the form holds its ID.
  */
 export function AccountCombobox({
   id,
@@ -129,7 +129,7 @@ export function AccountCombobox({
         <ul
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto border border-hairline bg-surface shadow-[0_8px_24px_-12px_rgba(23,19,14,0.3)]"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto border border-hairline bg-surface shadow-[0_8px_24px_-12px_rgba(15,23,42,0.3)]"
         >
           {filtered.length === 0 ? (
             <li className="px-3 py-3 text-sm text-muted">No accounts match.</li>

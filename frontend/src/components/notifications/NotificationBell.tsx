@@ -58,7 +58,7 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-80 border border-hairline bg-surface shadow-[0_8px_24px_-12px_rgba(23,19,14,0.3)]"
+          className="absolute right-0 mt-2 w-80 border border-hairline bg-surface shadow-[0_8px_24px_-12px_rgba(15,23,42,0.3)]"
           role="menu"
         >
           <div className="eyebrow border-b border-hairline px-4 py-3">

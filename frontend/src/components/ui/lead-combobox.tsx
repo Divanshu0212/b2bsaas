@@ -135,7 +135,7 @@ export function LeadCombobox({
         <ul
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto border border-hairline bg-surface shadow-[0_8px_24px_-12px_rgba(23,19,14,0.3)]"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto border border-hairline bg-surface shadow-[0_8px_24px_-12px_rgba(15,23,42,0.3)]"
         >
           {filtered.length === 0 ? (
             <li className="px-3 py-3 text-sm text-muted">No leads match.</li>

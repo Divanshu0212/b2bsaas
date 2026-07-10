@@ -24,7 +24,7 @@ export function DealCard({ deal, dragging }: { deal: DealResponse; dragging?: bo
       className={cn(
         "border border-hairline bg-surface p-3 transition-colors hover:border-ink",
         "cursor-grab active:cursor-grabbing",
-        (isDragging || dragging) && "opacity-70 border-accent shadow-[0_8px_24px_-12px_rgba(23,19,14,0.35)]",
+        (isDragging || dragging) && "opacity-70 border-accent shadow-[0_8px_24px_-12px_rgba(15,23,42,0.35)]",
       )}
       {...listeners}
       {...attributes}
