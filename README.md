@@ -314,6 +314,10 @@ Selected endpoints (full contract via `springdoc-openapi` at `/swagger-ui.html`)
 ├── README.md                         # this file
 ├── CLAUDE.md                         # agent working guidance + commit rules
 ├── b2b-saas-crm-design-document.md   # original SDD
+├── charts/                           # Helm charts: salespipe (app) + lead-scoring (ML)
+├── gitops/                           # Argo CD Applications + CI-bumped image tags
+├── platform/                         # cluster add-ons (External Secrets Operator wiring)
+├── .github/workflows/                # CI: test → push images → bump gitops
 └── docs/
     └── plan/
         ├── README.md                 # plan index
@@ -349,6 +353,57 @@ open http://localhost:3000
 ```
 
 The plan targets `docker compose` for local development and Helm on a Kubernetes cluster (kind/minikube locally) for the deployment story.
+
+---
+
+## Deployment (Phase 5)
+
+Two Helm charts under `charts/`: `salespipe` (the app) and `lead-scoring` (the ML service,
+separately sized because the embedding model lives in memory). Each templates a Deployment,
+Service, ConfigMap, probes, `RollingUpdate` (surge 1 / unavailable 0 for zero-downtime),
+HPA, and PodDisruptionBudget; the app chart adds nginx Ingress + cert-manager TLS, a KEDA
+`ScaledObject`, and an ESO `ExternalSecret`. Per-env overlays: `values-staging.yaml`,
+`values-prod.yaml` (prod raises resources off the Phase 4 load numbers — demo limits are
+never inherited).
+
+```bash
+# local (kind/minikube): plain Secret + CPU HPA, no vault/KEDA needed
+helm install salespipe ./charts/salespipe -n salespipe --create-namespace
+helm install lead-scoring ./charts/lead-scoring -n salespipe
+
+# staging/prod: KEDA lag-scaling + ESO secrets
+helm upgrade --install salespipe ./charts/salespipe -n salespipe-staging \
+  --create-namespace -f ./charts/salespipe/values-staging.yaml
+```
+
+**GitOps:** merge to `main` → CI (`.github/workflows/ci.yml`) tests both services, pushes
+SHA-tagged images to GHCR, and bumps the staging image tag in `gitops/apps/`. Argo CD
+(`gitops/argocd/`) auto-syncs staging; prod is a manual promote. If Argo isn't installed,
+the same charts deploy via `helm upgrade` (see `gitops/README.md`).
+
+**KEDA** scales the consumer path on Kafka consumer-group lag (`scoring-features-*`), not
+CPU — pause consumers + flood the topic and pods scale up, drain and they scale back to min.
+Fallback is the CPU HPA (`keda.enabled=false`, `hpa.enabled=true`).
+
+**Secrets** (`platform/external-secrets/`): External Secrets Operator syncs `DB_PASSWORD` /
+`JWT_SECRET` from Vault into a native K8s Secret (`secret.mode=eso`). No secret material in
+git or ConfigMaps. Local fallback is `secret.mode=plain` (documented dev-only gap).
+
+### Local vs managed services
+
+The stateful backing services are **in-cluster** for local/demo and **managed** in a real
+deployment. What was actually run here: everything in-cluster (StatefulSet/PVC) on kind — no
+cloud spend. The managed migration path is a values/connection-string change, not a code
+change (all endpoints come from ConfigMap/Secret, wired in Phases 1–2):
+
+| Service | Local (ran here) | Managed ("real") | Migration |
+|---|---|---|---|
+| Postgres | StatefulSet + PVC (`k8s/postgres.yaml`) | AWS RDS / Aurora | point `DB_URL` at the RDS endpoint; drop the in-cluster StatefulSet |
+| Redis | Deployment (`k8s/redis.yaml`) | ElastiCache | set `REDIS_HOST` to the ElastiCache endpoint |
+| Kafka | in-cluster broker | MSK / Confluent Cloud | set `KAFKA_BOOTSTRAP_SERVERS` + `SCHEMA_REGISTRY_URL`; add SASL creds via ESO |
+
+Managed services move backups, HA, and patching to the provider; the in-cluster versions
+are single-replica and dev-only (no PITR, no multi-AZ).
 
 ---
 
