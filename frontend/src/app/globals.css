@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/*
+  SalesPipe design tokens — "instrument panel" direction. Calm warm-neutral canvas so the
+  DATA (score badges, stage colors, money) is the loud element, not the chrome. One action
+  accent (trust-blue); a cold→hot ramp reserved exclusively for lead scores.
+*/
+:root {
+  --canvas: #fafaf9; /* warm paper-white app background */
+  --surface: #ffffff; /* cards, rails */
+  --hairline: #e7e5e4; /* 1px borders */
+  --ink: #1c1917; /* primary text */
+  --muted: #78716c; /* secondary text, labels */
+  --faint: #a8a29e; /* disabled, meta */
+
+  --accent: #2563eb; /* actions, links, focus */
+  --accent-fg: #ffffff;
+  --accent-soft: #eff6ff;
+
+  /* score ramp: cold (low) -> warm -> hot (high) */
+  --score-cold: #64748b;
+  --score-warm: #f59e0b;
+  --score-hot: #dc2626;
+
+  --won: #059669;
+  --lost: #b91c1c;
+  --danger: #dc2626;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-won: var(--won);
+  --color-lost: var(--lost);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Money and scores must align in columns — tabular figures everywhere numeric. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quality floor: visible keyboard focus, respect reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

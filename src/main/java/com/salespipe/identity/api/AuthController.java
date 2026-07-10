@@ -29,10 +29,12 @@ import java.util.UUID;
 @RequestMapping("/auth")
 public class AuthController {
 
-    /** httpOnly cookie carrying the refresh token. Path-scoped to /auth so it's only sent
-     *  to the refresh/logout endpoints, not every API call. */
+    /** httpOnly cookie carrying the refresh token. Path "/" so it survives the frontend's
+     *  {@code /api/*} reverse-proxy rewrite (the browser sees origin path {@code
+     *  /api/auth/refresh}, which a {@code /auth}-scoped cookie would not match). httpOnly
+     *  keeps it out of JS regardless of path. */
     static final String REFRESH_COOKIE = "refresh_token";
-    private static final String COOKIE_PATH = "/auth";
+    private static final String COOKIE_PATH = "/";
 
     private final OrganizationRepository orgs;
     private final UserRepository users;
