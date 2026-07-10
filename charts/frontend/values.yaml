@@ -1,0 +1,63 @@
+# Frontend (Next.js) chart. Follows the same shape as charts/salespipe. Ingress does
+# path-based routing: /api/* -> backend Service, everything else -> this frontend.
+
+replicaCount: 2
+
+image:
+  repository: frontend
+  tag: local
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Next standalone server has no health endpoint by default; TCP checks on the port suffice.
+probes:
+  liveness:
+    periodSeconds: 10
+  readiness:
+    periodSeconds: 10
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# Server-side origin the Next rewrite proxies /api/* to (in-cluster backend Service).
+config:
+  BACKEND_ORIGIN: http://salespipe:80
+
+# Single Ingress fronting both services (T6.12). /api/* routes to the backend Service by
+# name; everything else to this frontend. cert-manager TLS as in the app chart.
+ingress:
+  enabled: true
+  className: nginx
+  host: salespipe.local
+  backendServiceName: salespipe
+  backendServicePort: 80
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: salespipe-web-tls

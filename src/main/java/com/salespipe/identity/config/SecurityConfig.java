@@ -18,10 +18,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, ApiRateLimitProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, ApiRateLimitProperties.class, CorsProperties.class})
 public class SecurityConfig {
 
     @Bean
@@ -59,10 +64,32 @@ public class SecurityConfig {
         return new ApiRateLimitFilter(apiRateLimiter, tenantContext, properties);
     }
 
+    /**
+     * T6.3: CORS source driven by {@code app.cors.allowed-origins}. Credentials enabled so
+     * the browser sends the httpOnly refresh cookie on {@code /auth/refresh}; exposes no
+     * extra headers (the access token is returned in the JSON body, not a header).
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(CorsProperties props) {
+        CorsConfiguration cfg = new CorsConfiguration();
+        cfg.setAllowedOrigins(props.allowedOrigins());
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        cfg.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cfg);
+        return source;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
-            TenantFilter tenantFilter, ApiRateLimitFilter apiRateLimitFilter) throws Exception {
+            TenantFilter tenantFilter, ApiRateLimitFilter apiRateLimitFilter,
+            CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
+            // T6.3: CORS for the Next.js frontend origin. Credentials on (the refresh
+            // token rides an httpOnly cookie), so allowedOrigins must be explicit — a
+            // wildcard is illegal with allowCredentials=true.
+            .cors(c -> c.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(reg -> reg

@@ -1,0 +1,44 @@
+{{- if .Values.ingress.enabled }}
+# T6.12: single Ingress fronting the whole app. /api/* is rewritten to strip the prefix and
+# routed to the backend Service; everything else goes to the frontend. The frontend's own
+# Next rewrite is for local dev — in-cluster the Ingress does the split so the browser calls
+# https://host/api/... directly.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "frontend.fullname" . }}
+  labels: {{- include "frontend.labels" . | nindent 4 }}
+  annotations:
+    # Strip the /api prefix before forwarding to the backend (which serves /auth, /leads, …).
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts: [{{ .Values.ingress.host | quote }}]
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # /api(/…) -> backend, prefix stripped by rewrite-target above.
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.ingress.backendServiceName }}
+                port:
+                  number: {{ .Values.ingress.backendServicePort }}
+          # everything else -> frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "frontend.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}

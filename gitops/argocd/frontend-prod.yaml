@@ -1,0 +1,25 @@
+# frontend prod Application (manual promote).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend-prod
+  namespace: argocd
+spec:
+  project: salespipe
+  sources:
+    - repoURL: https://github.com/Divanshu0212/b2bsaas
+      targetRevision: main
+      path: charts/frontend
+      helm:
+        valueFiles:
+          - values.yaml
+          - $values/gitops/apps/frontend-prod.values.yaml
+    - repoURL: https://github.com/Divanshu0212/b2bsaas
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: salespipe
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
