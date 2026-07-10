@@ -4,6 +4,7 @@ import type {
   AccessTokenResponse,
   AccountRequest,
   AccountResponse,
+  ActivityResponse,
   ContactRequest,
   ContactResponse,
   DealRequest,
@@ -12,14 +13,14 @@ import type {
   FunnelReport,
   LeadRequest,
   LeadResponse,
+  LeadStatus,
   LoginRequest,
   NotificationList,
   PageResponse,
-  PipelineColumn,
+  StageColumn,
   RegisterRequest,
   ScoreResponse,
   StageChangeRequest,
-  TimelinePage,
   UUID,
 } from "./schema";
 
@@ -49,7 +50,7 @@ export const authApi = {
 
 // ---- pipeline / deals ----
 export const dealsApi = {
-  pipeline: () => apiFetch<PipelineColumn[]>("/deals/pipeline"),
+  pipeline: () => apiFetch<StageColumn[]>("/deals/pipeline"),
   stages: () => apiFetch<DealStage[]>("/deal-stages"),
   changeStage: (id: UUID, body: StageChangeRequest) =>
     apiFetch<DealResponse>(`/deals/${id}/stage`, { method: "PATCH", body }),
@@ -60,10 +61,10 @@ export const dealsApi = {
 
 // ---- leads ----
 export const leadsApi = {
-  list: (params: { status?: string; ownerId?: string; page?: number; size?: number }) => {
+  list: (params: { status?: LeadStatus; owner?: string; page?: number; size?: number }) => {
     const q = new URLSearchParams();
     if (params.status) q.set("status", params.status);
-    if (params.ownerId) q.set("ownerId", params.ownerId);
+    if (params.owner) q.set("owner", params.owner);
     q.set("page", String(params.page ?? 0));
     q.set("size", String(params.size ?? 20));
     return apiFetch<PageResponse<LeadResponse>>(`/leads?${q.toString()}`);
@@ -75,10 +76,8 @@ export const leadsApi = {
   score: (id: UUID) => apiFetch<ScoreResponse>(`/leads/${id}/score`),
   refreshScore: (id: UUID) =>
     apiFetch<ScoreResponse>(`/leads/${id}/score/refresh`, { method: "POST" }),
-  timeline: (id: UUID, cursor?: string) => {
-    const q = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-    return apiFetch<TimelinePage>(`/leads/${id}/timeline${q}`);
-  },
+  timeline: (id: UUID, page = 0, size = 20) =>
+    apiFetch<PageResponse<ActivityResponse>>(`/leads/${id}/timeline?page=${page}&size=${size}`),
 };
 
 // ---- accounts / contacts ----

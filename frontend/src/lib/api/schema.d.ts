@@ -15,6 +15,13 @@ export type IsoDate = string;
 
 export type Role = "ADMIN" | "SALES_REP";
 
+export type LeadStatus =
+  | "NEW"
+  | "CONTACTED"
+  | "QUALIFIED"
+  | "UNQUALIFIED"
+  | "CONVERTED";
+
 export interface AccessTokenResponse {
   accessToken: string;
 }
@@ -30,22 +37,22 @@ export interface LoginRequest {
 }
 
 export interface LeadRequest {
-  accountId: UUID | null;
+  status: LeadStatus;
+  source: string | null;
+  rawNotes: string | null;
   contactId: UUID | null;
-  name: string;
-  email: string | null;
-  status: string;
+  accountId: UUID | null;
   ownerId: UUID | null;
 }
 export interface LeadResponse {
   id: UUID;
-  accountId: UUID | null;
+  status: LeadStatus;
+  source: string | null;
+  rawNotes: string | null;
   contactId: UUID | null;
-  name: string;
-  email: string | null;
-  status: string;
+  accountId: UUID | null;
   ownerId: UUID | null;
-  createdAt: Instant;
+  version: number;
 }
 
 export interface AccountRequest {
@@ -91,9 +98,9 @@ export interface DealRequest {
 }
 export interface DealResponse {
   id: UUID;
+  stageId: UUID;
   leadId: UUID | null;
   accountId: UUID | null;
-  stageId: UUID;
   ownerId: UUID | null;
   amount: number | null;
   currency: string | null;
@@ -101,21 +108,12 @@ export interface DealResponse {
   version: number;
 }
 
-/** One column of the Kanban board: a stage plus the deals currently in it. */
-export interface PipelineColumn {
-  stage: DealStage;
-  deals: PipelineCard[];
-}
-export interface PipelineCard {
-  id: UUID;
-  leadId: UUID | null;
-  leadName: string | null;
-  accountName: string | null;
-  ownerId: UUID | null;
-  amount: number | null;
-  currency: string | null;
-  score: number | null;
-  version: number;
+/** One column of the Kanban board: a stage plus the deals currently in it (GET /deals/pipeline). */
+export interface StageColumn {
+  stageId: UUID;
+  stageName: string;
+  position: number;
+  deals: DealResponse[];
 }
 
 /** PATCH /deals/{id}/stage body — carries the optimistic-lock version. */
@@ -124,13 +122,15 @@ export interface StageChangeRequest {
   version: number;
 }
 
+/** One SHAP factor: which feature and its signed contribution to the score. */
 export interface ScoreFactor {
   feature: string;
-  contribution: number;
+  impact: number;
 }
 export interface ScorePoint {
   score: number;
   modelVersion: string | null;
+  /** jsonb on the backend — an array of {feature, impact} (may be [] if unscored). */
   topFactors: ScoreFactor[];
   scoredAt: Instant;
 }
@@ -140,21 +140,15 @@ export interface ScoreResponse {
   history: ScorePoint[];
 }
 
-export type ActivityType =
-  | "LEAD_CREATED"
-  | "ACTIVITY_LOGGED"
-  | "DEAL_STAGE_CHANGED"
-  | "EMAIL_OPENED"
-  | "EMAIL_CLICKED";
-export interface TimelineEntry {
+/** Timeline row (GET /leads/{id}/timeline → Page<ActivityResponse>). */
+export interface ActivityResponse {
   id: UUID;
-  type: ActivityType;
-  summary: string;
-  occurredAt: Instant;
-}
-export interface TimelinePage {
-  entries: TimelineEntry[];
-  nextCursor: string | null;
+  entityType: string;
+  entityId: UUID;
+  activityType: string;
+  payload: Record<string, unknown>;
+  createdBy: UUID | null;
+  createdAt: Instant;
 }
 
 export interface NotificationItem {
@@ -196,10 +190,13 @@ export interface ProblemDetail {
   instance?: string;
 }
 
+/** Spring Data Page serialization: `number` is the current page index (0-based). */
 export interface PageResponse<T> {
   content: T[];
-  page: number;
+  number: number;
   size: number;
   totalElements: number;
   totalPages: number;
+  first: boolean;
+  last: boolean;
 }
