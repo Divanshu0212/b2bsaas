@@ -10,6 +10,11 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# next.config rewrites() is resolved at BUILD time and frozen into routes-manifest.json for
+# standalone output, so the backend origin must be known here (not just at runtime). Passed
+# as a build arg; compose sets it to the in-cluster/compose service name.
+ARG BACKEND_ORIGIN=http://localhost:8080
+ENV BACKEND_ORIGIN=${BACKEND_ORIGIN}
 # Next standalone output (next.config output:"standalone") -> minimal runtime bundle.
 RUN npm run build
 
