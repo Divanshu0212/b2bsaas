@@ -431,6 +431,7 @@ are single-replica and dev-only (no PITR, no multi-AZ).
 
 ## Documentation
 
+- [`docs/WORKFLOW.md`](docs/WORKFLOW.md) — **how to run and use the app** (start here to try it).
 - [`docs/plan/`](docs/plan/) — implementation plan; **start with the [overview](docs/plan/00-overview.md)**.
 - [`b2b-saas-crm-design-document.md`](b2b-saas-crm-design-document.md) — original software design document.
 
