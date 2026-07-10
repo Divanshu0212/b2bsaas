@@ -189,6 +189,17 @@ export interface FunnelReport {
   leaderboard: LeaderboardRow[];
 }
 
+/** A message stuck in a DLQ topic (admin ops). */
+export interface DlqMessage {
+  dlqTopic: string;
+  partition: number;
+  offset: number;
+  key: string | null;
+  originalTopic: string;
+  failureReason: string | null;
+  attempts: string | null;
+}
+
 /** RFC 7807 problem+json — the backend's error shape. */
 export interface ProblemDetail {
   type?: string;

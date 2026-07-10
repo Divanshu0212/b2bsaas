@@ -53,6 +53,22 @@ export const accountFormSchema = z.object({
 });
 export type AccountFormValues = z.input<typeof accountFormSchema>;
 
+export const contactFormSchema = z.object({
+  accountId: optionalUuid,
+  firstName: optionalString,
+  lastName: optionalString,
+  email: z
+    .string()
+    .trim()
+    .nullable()
+    .optional()
+    .transform((s) => (s === "" || s == null ? null : s))
+    .refine((v) => v === null || z.string().email().safeParse(v).success, "Invalid email"),
+  phone: optionalString,
+  title: optionalString,
+});
+export type ContactFormValues = z.input<typeof contactFormSchema>;
+
 export const dealFormSchema = z.object({
   stageId: z.string().uuid("Pick a stage"), // @NotNull
   leadId: optionalUuid,

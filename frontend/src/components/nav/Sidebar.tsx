@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { KanbanSquare, Users, BarChart3, Bell } from "lucide-react";
+import { KanbanSquare, Users, BarChart3, Bell, Building2, Contact, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Role } from "@/lib/api/schema";
 
@@ -17,9 +17,12 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
   { href: "/leads", label: "Leads", icon: Users },
-  // Reports is an admin surface — hidden from SALES_REP (T6.4 RBAC).
+  { href: "/accounts", label: "Accounts", icon: Building2 },
+  { href: "/contacts", label: "Contacts", icon: Contact },
+  // Reports + DLQ are admin surfaces — hidden from SALES_REP (T6.4 RBAC).
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ["ADMIN"] },
   { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/admin/dlq", label: "Dead letters", icon: AlertTriangle, roles: ["ADMIN"] },
 ];
 
 export function Sidebar({ role }: { role: Role | null }) {

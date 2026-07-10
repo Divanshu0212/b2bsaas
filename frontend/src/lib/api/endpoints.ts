@@ -10,6 +10,7 @@ import type {
   DealRequest,
   DealResponse,
   DealStage,
+  DlqMessage,
   FunnelReport,
   LeadRequest,
   LeadResponse,
@@ -82,13 +83,31 @@ export const leadsApi = {
 
 // ---- accounts / contacts ----
 export const accountsApi = {
+  list: (page = 0, size = 20) =>
+    apiFetch<PageResponse<AccountResponse>>(`/accounts?page=${page}&size=${size}`),
   create: (body: AccountRequest) =>
     apiFetch<AccountResponse>("/accounts", { method: "POST", body }),
   get: (id: UUID) => apiFetch<AccountResponse>(`/accounts/${id}`),
+  remove: (id: UUID) => apiFetch<void>(`/accounts/${id}`, { method: "DELETE" }),
 };
 export const contactsApi = {
+  list: (page = 0, size = 20) =>
+    apiFetch<PageResponse<ContactResponse>>(`/contacts?page=${page}&size=${size}`),
   create: (body: ContactRequest) =>
     apiFetch<ContactResponse>("/contacts", { method: "POST", body }),
+  get: (id: UUID) => apiFetch<ContactResponse>(`/contacts/${id}`),
+  remove: (id: UUID) => apiFetch<void>(`/contacts/${id}`, { method: "DELETE" }),
+};
+
+// ---- DLQ admin (ADMIN role) ----
+export const dlqApi = {
+  topics: () => apiFetch<string[]>("/admin/dlq/topics"),
+  list: (topic: string, limit = 50) =>
+    apiFetch<DlqMessage[]>(`/admin/dlq?topic=${encodeURIComponent(topic)}&limit=${limit}`),
+  count: (topic: string) =>
+    apiFetch<{ count: number }>(`/admin/dlq/count?topic=${encodeURIComponent(topic)}`),
+  replay: (body: { topic: string; partition: number; offset: number }) =>
+    apiFetch<Record<string, unknown>>("/admin/dlq/replay", { method: "POST", body }),
 };
 
 // ---- notifications ----

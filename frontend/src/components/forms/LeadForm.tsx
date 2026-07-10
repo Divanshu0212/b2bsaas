@@ -11,14 +11,16 @@ import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
-import type { LeadRequest, LeadStatus } from "@/lib/api/schema";
+import type { LeadRequest, LeadResponse, LeadStatus } from "@/lib/api/schema";
 
 const STATUSES: LeadStatus[] = ["NEW", "CONTACTED", "QUALIFIED", "UNQUALIFIED", "CONVERTED"];
 
-export function LeadForm() {
+/** Create (no `existing`) or edit (pass the loaded lead) a lead with the same form. */
+export function LeadForm({ existing }: { existing?: LeadResponse }) {
   const router = useRouter();
   const qc = useQueryClient();
   const { toast } = useToast();
+  const editing = existing !== undefined;
 
   const {
     register,
@@ -26,19 +28,40 @@ export function LeadForm() {
     formState: { errors, isSubmitting },
   } = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
-    defaultValues: { status: "NEW", source: "", rawNotes: "", contactId: "", accountId: "", ownerId: "" },
+    defaultValues: existing
+      ? {
+          status: existing.status,
+          source: existing.source ?? "",
+          rawNotes: existing.rawNotes ?? "",
+          contactId: existing.contactId ?? "",
+          accountId: existing.accountId ?? "",
+          ownerId: existing.ownerId ?? "",
+        }
+      : { status: "NEW", source: "", rawNotes: "", contactId: "", accountId: "", ownerId: "" },
   });
 
   async function onSubmit(values: LeadFormValues) {
     // zod transforms "" -> null already; cast to the request shape.
     const parsed = leadFormSchema.parse(values) as LeadRequest;
     try {
-      const lead = await leadsApi.create(parsed);
-      qc.invalidateQueries({ queryKey: ["leads"] });
-      toast("Lead created.", "success");
-      router.push(`/leads/${lead.id}`);
+      if (editing) {
+        await leadsApi.update(existing.id, parsed);
+        qc.invalidateQueries({ queryKey: ["lead", existing.id] });
+        qc.invalidateQueries({ queryKey: ["leads"] });
+        toast("Lead updated.", "success");
+        router.push(`/leads/${existing.id}`);
+      } else {
+        const lead = await leadsApi.create(parsed);
+        qc.invalidateQueries({ queryKey: ["leads"] });
+        toast("Lead created.", "success");
+        router.push(`/leads/${lead.id}`);
+      }
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Couldn't create the lead.", "error");
+      if (err instanceof ApiError && err.status === 409) {
+        toast("Someone else updated this lead. Reload and try again.", "error");
+      } else {
+        toast(err instanceof ApiError ? err.message : "Couldn't save the lead.", "error");
+      }
     }
   }
 
@@ -72,7 +95,7 @@ export function LeadForm() {
 
       <div className="flex gap-2 pt-2">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Creating…" : "Create lead"}
+          {isSubmitting ? "Saving…" : editing ? "Save changes" : "Create lead"}
         </Button>
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           Cancel
