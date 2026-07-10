@@ -10,7 +10,37 @@ Event-driven architecture · distributed-systems primitives · a real ML lead-sc
 
 ---
 
+## Screenshots
+
+The frontend is a Next.js app in an editorial "ledger" style — a cool slate palette with an
+indigo accent, a Fraunces display serif for titles and money, and hairline rules doing the
+structural work.
+
+**Pipeline** — deals move stage to stage; each column totals in serif.
+
+![Pipeline](frontend/public/screenshots/pipeline.png)
+
+**Reports** — the pipeline funnel and rep leaderboard, set like a printed statement.
+
+![Reports](frontend/public/screenshots/reports.png)
+
+**Leads** — inbound leads with status, source, and AI score.
+
+![Leads](frontend/public/screenshots/leads.png)
+
+**Accounts** — the company book.
+
+![Accounts](frontend/public/screenshots/accounts.png)
+
+**Sign in** — editorial split login.
+
+![Sign in](frontend/public/screenshots/login.png)
+
+---
+
 ## Table of contents
+
+- [Screenshots](#screenshots)
 
 - [What it is](#what-it-is)
 - [Why this project](#why-this-project)
