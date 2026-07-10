@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
+import { AccountCombobox } from "@/components/ui/account-combobox";
 import type { LeadRequest, LeadResponse, LeadStatus } from "@/lib/api/schema";
 
 const STATUSES: LeadStatus[] = ["NEW", "CONTACTED", "QUALIFIED", "UNQUALIFIED", "CONVERTED"];
@@ -24,6 +25,7 @@ export function LeadForm({ existing }: { existing?: LeadResponse }) {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LeadFormValues>({
@@ -89,8 +91,19 @@ export function LeadForm({ existing }: { existing?: LeadResponse }) {
         <Input id="rawNotes" {...register("rawNotes")} />
       </Field>
 
-      <Field label="Account ID" htmlFor="accountId" error={errors.accountId?.message}>
-        <Input id="accountId" placeholder="optional" {...register("accountId")} />
+      <Field label="Account" htmlFor="accountId" error={errors.accountId?.message}>
+        <Controller
+          control={control}
+          name="accountId"
+          render={({ field }) => (
+            <AccountCombobox
+              id="accountId"
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              placeholder="Search accounts… (optional)"
+            />
+          )}
+        />
       </Field>
 
       <div className="flex gap-2 pt-2">
