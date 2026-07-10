@@ -108,6 +108,22 @@ services:
       timeout: 5s
       retries: 12
 
+  # One-shot seeder: trains the synthetic cold-start model and promotes it to Production so
+  # the scoring service loads a real model on first boot (instead of the heuristic). Runs
+  # once, then exits 0. Re-runnable; the promotion gate only replaces a worse incumbent.
+  # Reuses the ./ml image. Manual re-run: `make seed-model`.
+  model-seed:
+    build: ./ml
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_MODEL_NAME: leadscore
+      GIT_PYTHON_REFRESH: quiet
+    command: ["python", "-m", "training.seed"]
+    restart: "no"
+
   # Phase 3 (T3.2): Python FastAPI lead-scoring service. Loads the Production model from
   # MLflow at startup; degrades to a heuristic fallback if none is registered yet, so the
   # cold-start demo works before the first training run.
@@ -116,6 +132,9 @@ services:
     depends_on:
       mlflow:
         condition: service_healthy
+      # Wait for the seeder to finish so the Production model exists before startup load.
+      model-seed:
+        condition: service_completed_successfully
     environment:
       MLFLOW_TRACKING_URI: http://mlflow:5000
       MLFLOW_MODEL_NAME: leadscore
