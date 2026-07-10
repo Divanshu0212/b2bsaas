@@ -16,6 +16,7 @@ env:
   REGISTRY: ghcr.io
   APP_IMAGE: ghcr.io/${{ github.repository }}/salespipe
   ML_IMAGE: ghcr.io/${{ github.repository }}/lead-scoring
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
 
 jobs:
   # ---- Secret scan (T5 verification: no committed secrets) ----
@@ -55,9 +56,25 @@ jobs:
       - run: pip install -r requirements.txt pytest
       - run: python -m pytest -q
 
-  # ---- Build + push both images, tagged with the git SHA (immutable, GitOps-pinnable) ----
+  # ---- Frontend: typecheck, Vitest, production build, OpenAPI contract drift check ----
+  frontend-test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      # Contract check: regenerate the API client and fail if it drifts from the committed
+      # copy. (Runs only when a spec is reachable; skipped here without a live backend — the
+      # committed schema.d.ts is the source of truth until the spec is published in CI.)
+
+  # ---- Build + push all images, tagged with the git SHA (immutable, GitOps-pinnable) ----
   build-push:
-    needs: [secret-scan, java-test, ml-test]
+    needs: [secret-scan, java-test, ml-test, frontend-test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -93,6 +110,15 @@ jobs:
           tags: ${{ env.ML_IMAGE }}:${{ steps.meta.outputs.sha_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Build + push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.sha_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ---- Bump the staging image tag in gitops/. Argo watches that path and auto-syncs. ----
   # Declarative desired state committed to git — NOT `kubectl apply`/`helm upgrade` from CI.
@@ -108,6 +134,7 @@ jobs:
         run: |
           sed -i "s|^  tag:.*|  tag: ${TAG}|" gitops/apps/salespipe-staging.values.yaml
           sed -i "s|^  tag:.*|  tag: ${TAG}|" gitops/apps/lead-scoring-staging.values.yaml
+          sed -i "s|^  tag:.*|  tag: ${TAG}|" gitops/apps/frontend-staging.values.yaml
       - name: Commit the tag bump
         run: |
           git config user.name divanshu0212

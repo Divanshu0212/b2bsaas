@@ -150,7 +150,22 @@ services:
       # T4.2: export traces (OTLP/gRPC) to Tempo. OutboxRecorder/EventPublisher/
       # IdempotentConsumer carry the trace across the async Kafka boundary via traceparent.
       OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
+      # T6.3: browser origin for the frontend + allow the refresh cookie over http locally
+      # (no TLS in compose). cookie-secure MUST stay true in any real deployment.
+      CORS_ALLOWED_ORIGINS: http://localhost:3001
+      APP_AUTH_COOKIE_SECURE: "false"
     ports: ["8080:8080"]
+
+  # T6.12: Next.js frontend. Talks to the backend via its own /api/* rewrite (BACKEND_ORIGIN),
+  # so the browser stays same-origin. Host port 3001 (3000 is taken by Grafana).
+  frontend:
+    build: ./frontend
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      BACKEND_ORIGIN: http://app:8080
+    ports: ["3001:3000"]
 
   # T4.1: Prometheus scrapes /actuator/prometheus on `app` per observability/prometheus.yml;
   # alert rules (DLQ depth, consumer lag, CB open, error-rate SLO burn) live in

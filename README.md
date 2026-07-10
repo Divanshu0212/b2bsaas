@@ -314,7 +314,8 @@ Selected endpoints (full contract via `springdoc-openapi` at `/swagger-ui.html`)
 ├── README.md                         # this file
 ├── CLAUDE.md                         # agent working guidance + commit rules
 ├── b2b-saas-crm-design-document.md   # original SDD
-├── charts/                           # Helm charts: salespipe (app) + lead-scoring (ML)
+├── charts/                           # Helm charts: salespipe (app), lead-scoring (ML), frontend
+├── frontend/                         # Next.js web client (Phase 6)
 ├── gitops/                           # Argo CD Applications + CI-bumped image tags
 ├── platform/                         # cluster add-ons (External Secrets Operator wiring)
 ├── .github/workflows/                # CI: test → push images → bump gitops
@@ -376,10 +377,16 @@ helm upgrade --install salespipe ./charts/salespipe -n salespipe-staging \
   --create-namespace -f ./charts/salespipe/values-staging.yaml
 ```
 
-**GitOps:** merge to `main` → CI (`.github/workflows/ci.yml`) tests both services, pushes
-SHA-tagged images to GHCR, and bumps the staging image tag in `gitops/apps/`. Argo CD
-(`gitops/argocd/`) auto-syncs staging; prod is a manual promote. If Argo isn't installed,
-the same charts deploy via `helm upgrade` (see `gitops/README.md`).
+**GitOps:** merge to `main` → CI (`.github/workflows/ci.yml`) tests all three services
+(Java, ML, frontend), pushes SHA-tagged images to GHCR, and bumps the staging image tag in
+`gitops/apps/`. Argo CD (`gitops/argocd/`) auto-syncs staging; prod is a manual promote. If
+Argo isn't installed, the same charts deploy via `helm upgrade` (see `gitops/README.md`).
+
+**Frontend** (Phase 6): the Next.js web client ships its own `charts/frontend` chart. One
+nginx Ingress does path-based routing — `/api/*` to the backend Service (prefix stripped),
+everything else to the frontend. Locally, `docker compose up` serves the full stack; the
+frontend is on `:3001` (Grafana holds `:3000`) and proxies `/api/*` to the backend so the
+browser stays same-origin.
 
 **KEDA** scales the consumer path on Kafka consumer-group lag (`scoring-features-*`), not
 CPU — pause consumers + flood the topic and pods scale up, drain and they scale back to min.

@@ -43,14 +43,20 @@ public class AuthController {
     private final RefreshTokenService refreshTokens;
     private final DealStageSeeder stageSeeder;
     private final Duration refreshTtl;
+    /** Secure flag on the refresh cookie. True (TLS-only) in prod; set false for local
+     *  http-only compose dev where the browser would otherwise drop a Secure cookie. */
+    private final boolean cookieSecure;
 
     public AuthController(OrganizationRepository orgs, UserRepository users,
                           PasswordEncoder encoder, JwtProvider jwt,
                           RefreshTokenService refreshTokens, DealStageSeeder stageSeeder,
-                          JwtProperties jwtProps) {
+                          JwtProperties jwtProps,
+                          @org.springframework.beans.factory.annotation.Value(
+                              "${app.auth.cookie-secure:true}") boolean cookieSecure) {
         this.orgs = orgs; this.users = users; this.encoder = encoder;
         this.jwt = jwt; this.refreshTokens = refreshTokens; this.stageSeeder = stageSeeder;
         this.refreshTtl = Duration.ofSeconds(jwtProps.getRefreshTtlSeconds());
+        this.cookieSecure = cookieSecure;
     }
 
     @PostMapping("/register")
@@ -108,13 +114,13 @@ public class AuthController {
         // navigations and breaks refresh across subdomains in prod (T6 risk note). httpOnly
         // + Secure so it's inaccessible to JS and only sent over TLS.
         return ResponseCookie.from(REFRESH_COOKIE, raw)
-            .httpOnly(true).secure(true).sameSite("Lax")
+            .httpOnly(true).secure(cookieSecure).sameSite("Lax")
             .path(COOKIE_PATH).maxAge(refreshTtl).build();
     }
 
     private ResponseCookie expiredRefreshCookie() {
         return ResponseCookie.from(REFRESH_COOKIE, "")
-            .httpOnly(true).secure(true).sameSite("Lax")
+            .httpOnly(true).secure(cookieSecure).sameSite("Lax")
             .path(COOKIE_PATH).maxAge(0).build();
     }
 
