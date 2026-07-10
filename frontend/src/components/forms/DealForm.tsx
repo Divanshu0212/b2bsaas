@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
+import { LeadCombobox } from "@/components/ui/lead-combobox";
 import type { DealRequest } from "@/lib/api/schema";
 
 /**
@@ -30,6 +31,7 @@ export function DealForm() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<DealFormValues>({
@@ -87,8 +89,19 @@ export function DealForm() {
         <Input id="currency" maxLength={3} {...register("currency")} />
       </Field>
 
-      <Field label="Lead ID" htmlFor="leadId" error={errors.leadId?.message}>
-        <Input id="leadId" placeholder="optional" {...register("leadId")} />
+      <Field label="Lead" htmlFor="leadId" error={errors.leadId?.message}>
+        <Controller
+          control={control}
+          name="leadId"
+          render={({ field }) => (
+            <LeadCombobox
+              id="leadId"
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              placeholder="Search leads… (optional)"
+            />
+          )}
+        />
       </Field>
 
       <Field
