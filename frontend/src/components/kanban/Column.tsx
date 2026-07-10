@@ -15,20 +15,23 @@ export function Column({ column }: { column: StageColumn }) {
 
   return (
     <div className="flex w-72 shrink-0 flex-col">
-      <div className="mb-2 flex items-baseline justify-between px-1">
-        <h2 className="text-sm font-semibold text-ink">
-          {column.stageName}
-          <span className="ml-2 text-xs font-normal text-faint tabular">
-            {column.deals.length}
-          </span>
-        </h2>
-        <span className="text-xs text-muted tabular">{money(total, currency)}</span>
+      {/* Stage header as a ledger line: name + count on the left, the column total in serif. */}
+      <div className="mb-3 border-b-2 border-ink pb-2">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-ink">
+            {column.stageName}
+            <span className="ml-2 text-xs font-normal text-faint tabular">
+              {column.deals.length}
+            </span>
+          </h2>
+          <span className="tabular display text-sm text-ink">{money(total, currency)}</span>
+        </div>
       </div>
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-24 flex-1 flex-col gap-2 rounded-lg border border-hairline/70 bg-hairline/20 p-2 transition-colors",
-          isOver && "border-accent bg-accent-soft/50",
+          "flex min-h-24 flex-1 flex-col gap-2 p-0.5 transition-colors",
+          isOver && "bg-accent-soft/60",
         )}
       >
         {column.deals.map((deal) => (

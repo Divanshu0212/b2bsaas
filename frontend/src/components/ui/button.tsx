@@ -10,14 +10,14 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-fg hover:bg-accent/90",
+  primary: "bg-accent text-accent-fg hover:bg-ink",
   ghost: "text-ink hover:bg-hairline/60",
-  outline: "border border-hairline text-ink hover:bg-hairline/40",
-  danger: "bg-danger text-white hover:bg-danger/90",
+  outline: "border border-ink/80 text-ink hover:bg-ink hover:text-canvas",
+  danger: "bg-danger text-white hover:bg-ink",
 };
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
+  sm: "h-8 px-3.5 text-[13px]",
+  md: "h-10 px-5 text-sm",
 };
 
 export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
@@ -28,7 +28,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-none font-medium transition-colors",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         "disabled:opacity-50 disabled:pointer-events-none",
         variants[variant],

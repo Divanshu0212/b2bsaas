@@ -67,7 +67,7 @@ export function DealForm() {
       <Field label="Stage" htmlFor="stageId" error={errors.stageId?.message}>
         <select
           id="stageId"
-          className="h-10 w-full rounded-md border border-hairline bg-surface px-3 text-sm"
+          className="h-10 w-full rounded-none border-0 border-b border-hairline bg-transparent px-0.5 text-sm transition-colors focus-visible:border-accent focus-visible:outline-none"
           {...register("stageId")}
         >
           <option value="">Select a stage…</option>

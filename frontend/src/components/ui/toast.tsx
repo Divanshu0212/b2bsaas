@@ -45,10 +45,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={cn(
-              "rounded-md border px-4 py-3 text-sm shadow-lg bg-surface max-w-sm",
-              t.kind === "error" && "border-danger/30 text-danger",
-              t.kind === "success" && "border-won/30 text-won",
-              t.kind === "info" && "border-hairline text-ink",
+              "max-w-sm border-l-2 bg-surface px-4 py-3 text-sm shadow-[0_1px_0_var(--hairline),0_8px_24px_-12px_rgba(23,19,14,0.25)]",
+              t.kind === "error" && "border-danger text-danger",
+              t.kind === "success" && "border-won text-won",
+              t.kind === "info" && "border-ink text-ink",
             )}
           >
             {t.message}

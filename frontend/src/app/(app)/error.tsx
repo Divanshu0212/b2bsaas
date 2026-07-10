@@ -26,10 +26,13 @@ export default function AppError({
     error instanceof ApiError ? error.message : "We couldn't reach the server.";
 
   return (
-    <div className="mx-auto max-w-md py-16 text-center">
-      <h1 className="text-lg font-semibold">Something went wrong</h1>
+    <div className="mx-auto max-w-md py-24 text-center">
+      <p className="eyebrow mb-2">Error</p>
+      <h1 className="display text-2xl font-semibold tracking-tight text-ink">
+        Something went wrong
+      </h1>
       <p className="mt-2 text-sm text-muted">{message}</p>
-      <Button className="mt-4" onClick={() => reset()}>
+      <Button className="mt-6" onClick={() => reset()}>
         Try again
       </Button>
     </div>

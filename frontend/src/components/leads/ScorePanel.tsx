@@ -35,7 +35,7 @@ export function ScorePanel({ leadId }: { leadId: string }) {
   if (isLoading) return <PanelSkeleton />;
   if (isError || !data)
     return (
-      <section className="rounded-lg border border-hairline bg-surface p-4">
+      <section className="border border-hairline bg-surface p-5">
         <p className="text-sm text-danger">Couldn&apos;t load the score.</p>
       </section>
     );
@@ -50,15 +50,21 @@ export function ScorePanel({ leadId }: { leadId: string }) {
   const maxImpact = Math.max(1e-6, ...(latest?.topFactors ?? []).map((f) => Math.abs(f.impact)));
 
   return (
-    <section className="rounded-lg border border-hairline bg-surface p-4">
+    <section className="border border-hairline bg-surface p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted">Lead score</p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="tabular text-3xl font-semibold" style={{ color: band.color }}>
+          <p className="eyebrow">Lead score</p>
+          <div className="mt-1.5 flex items-baseline gap-2.5">
+            <span
+              className="tabular display text-5xl font-semibold leading-none"
+              style={{ color: band.color }}
+            >
               {scoreNum != null ? Math.round(scoreNum * 100) : "—"}
             </span>
-            <span className="text-sm font-medium" style={{ color: band.color }}>
+            <span
+              className="text-xs font-semibold uppercase tracking-wide"
+              style={{ color: band.color }}
+            >
               {band.label}
             </span>
           </div>
@@ -95,8 +101,8 @@ export function ScorePanel({ leadId }: { leadId: string }) {
       )}
 
       {latest && latest.topFactors.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs uppercase tracking-wide text-muted">Top factors</p>
+        <div className="mt-5 border-t border-hairline pt-4">
+          <p className="eyebrow mb-3">Top factors</p>
           <ul className="space-y-1.5">
             {latest.topFactors.map((f) => {
               const pct = (Math.abs(f.impact) / maxImpact) * 100;
@@ -106,9 +112,9 @@ export function ScorePanel({ leadId }: { leadId: string }) {
                   <span className="w-40 shrink-0 truncate text-muted" title={f.feature}>
                     {f.feature.replaceAll("_", " ")}
                   </span>
-                  <span className="flex h-2 flex-1 overflow-hidden rounded bg-hairline/60">
+                  <span className="flex h-2 flex-1 overflow-hidden bg-hairline/60">
                     <span
-                      className="h-full rounded"
+                      className="h-full"
                       style={{
                         width: `${pct}%`,
                         background: positive ? "var(--score-hot)" : "var(--score-cold)",
@@ -131,9 +137,9 @@ export function ScorePanel({ leadId }: { leadId: string }) {
 
 function PanelSkeleton() {
   return (
-    <section className="rounded-lg border border-hairline bg-surface p-4">
-      <div className="h-8 w-20 rounded bg-hairline" />
-      <div className="mt-3 h-16 rounded bg-hairline/50" />
+    <section className="border border-hairline bg-surface p-5">
+      <div className="h-10 w-24 bg-hairline" />
+      <div className="mt-3 h-16 bg-hairline/50" />
     </section>
   );
 }

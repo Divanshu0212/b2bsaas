@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { Trash2 } from "lucide-react";
 import { accountsApi } from "@/lib/api/endpoints";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 
 export default function AccountsPage() {
@@ -30,52 +31,55 @@ export default function AccountsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Accounts</h1>
-        <Link href="/accounts/new">
-          <Button size="sm">New account</Button>
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Companies"
+        title="Accounts"
+        action={
+          <Link href="/accounts/new">
+            <Button size="sm">New account</Button>
+          </Link>
+        }
+      />
 
       {isLoading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : isError || !data ? (
         <p className="text-sm text-danger">Couldn&apos;t load accounts.</p>
       ) : data.content.length === 0 ? (
-        <p className="rounded-md border border-hairline bg-surface p-8 text-center text-sm text-muted">
+        <p className="border-t border-hairline py-16 text-center text-sm text-muted">
           No accounts yet.
         </p>
       ) : (
         <>
-          <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+          <div className="border-t border-hairline">
             <table className="w-full text-sm">
-              <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Name</th>
-                  <th className="px-4 py-2 font-medium">Industry</th>
-                  <th className="px-4 py-2 font-medium">Employees</th>
-                  <th className="px-4 py-2 font-medium">Website</th>
-                  <th className="px-4 py-2" />
+              <thead className="border-b border-hairline text-left">
+                <tr className="[&>th]:eyebrow [&>th]:px-1 [&>th]:pb-2">
+                  <th>Name</th>
+                  <th>Industry</th>
+                  <th>Employees</th>
+                  <th>Website</th>
+                  <th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline">
                 {data.content.map((a) => (
-                  <tr key={a.id} className="hover:bg-hairline/30">
-                    <td className="px-4 py-2.5 text-ink">{a.name}</td>
-                    <td className="px-4 py-2.5 text-muted">{a.industry ?? "—"}</td>
-                    <td className="tabular px-4 py-2.5 text-muted">{a.employeeCount ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-muted">
+                  <tr key={a.id} className="transition-colors hover:bg-accent-soft/40">
+                    <td className="px-1 py-3 font-medium text-ink">{a.name}</td>
+                    <td className="px-1 py-3 text-muted">{a.industry ?? "—"}</td>
+                    <td className="tabular px-1 py-3 text-muted">{a.employeeCount ?? "—"}</td>
+                    <td className="px-1 py-3 text-muted">
                       {a.website ? (
-                        <a href={a.website} className="text-accent hover:underline" target="_blank" rel="noreferrer">
+                        <a href={a.website} className="text-accent underline-offset-4 hover:underline" target="_blank" rel="noreferrer">
                           {a.website}
                         </a>
                       ) : (
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-1 py-3 text-right">
                       <button
-                        className="text-faint hover:text-danger"
+                        className="text-faint transition-colors hover:text-danger"
                         aria-label="Delete account"
                         onClick={() => {
                           if (confirm(`Delete "${a.name}"?`)) remove.mutate(a.id);

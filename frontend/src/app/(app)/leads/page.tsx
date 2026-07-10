@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { leadsApi } from "@/lib/api/endpoints";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/cn";
 import type { LeadStatus } from "@/lib/api/schema";
 
@@ -36,15 +37,18 @@ export default function LeadsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Leads</h1>
-        <Link href="/leads/new">
-          <Button size="sm">New lead</Button>
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Inbound & scored"
+        title="Leads"
+        action={
+          <Link href="/leads/new">
+            <Button size="sm">New lead</Button>
+          </Link>
+        }
+      />
 
       {/* Status filter */}
-      <div className="mb-4 flex flex-wrap gap-1.5">
+      <div className="mb-6 flex flex-wrap gap-1.5">
         <FilterChip active={status === undefined} onClick={() => { setStatus(undefined); setPage(0); }}>
           All
         </FilterChip>
@@ -64,42 +68,45 @@ export default function LeadsPage() {
       ) : isError || !data ? (
         <p className="text-sm text-danger">Couldn&apos;t load leads.</p>
       ) : data.content.length === 0 ? (
-        <p className="rounded-md border border-hairline bg-surface p-8 text-center text-sm text-muted">
+        <p className="border-t border-hairline py-16 text-center text-sm text-muted">
           No leads match this filter.
         </p>
       ) : (
         <>
-          <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+          <div className="border-t border-hairline">
             <table className="w-full text-sm">
-              <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2 font-medium">Source</th>
-                  <th className="px-4 py-2 font-medium">Notes</th>
-                  <th className="px-4 py-2" />
+              <thead className="border-b border-hairline text-left">
+                <tr className="[&>th]:eyebrow [&>th]:px-1 [&>th]:pb-2 [&>th]:pt-0">
+                  <th>Status</th>
+                  <th>Source</th>
+                  <th>Notes</th>
+                  <th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline">
                 {data.content.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-hairline/30">
-                    <td className="px-4 py-2.5">
+                  <tr key={lead.id} className="group transition-colors hover:bg-accent-soft/40">
+                    <td className="px-1 py-3">
                       <span
-                        className="inline-flex items-center gap-1.5 text-xs font-medium"
+                        className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
                         style={{ color: STATUS_COLORS[lead.status] }}
                       >
                         <span
-                          className="h-1.5 w-1.5 rounded-full"
+                          className="h-1.5 w-1.5"
                           style={{ background: STATUS_COLORS[lead.status] }}
                         />
                         {lead.status.toLowerCase()}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-muted">{lead.source ?? "—"}</td>
-                    <td className="max-w-xs truncate px-4 py-2.5 text-muted">
+                    <td className="px-1 py-3 text-muted">{lead.source ?? "—"}</td>
+                    <td className="max-w-xs truncate px-1 py-3 text-muted">
                       {lead.rawNotes ?? "—"}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Link href={`/leads/${lead.id}`} className="text-accent hover:underline">
+                    <td className="px-1 py-3 text-right">
+                      <Link
+                        href={`/leads/${lead.id}`}
+                        className="text-accent underline-offset-4 hover:underline"
+                      >
                         Open
                       </Link>
                     </td>
@@ -151,10 +158,10 @@ function FilterChip({
     <button
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs capitalize transition-colors",
+        "border px-3 py-1 text-xs font-medium capitalize tracking-wide transition-colors",
         active
-          ? "border-accent bg-accent-soft text-accent"
-          : "border-hairline text-muted hover:bg-hairline/40",
+          ? "border-accent bg-accent text-accent-fg"
+          : "border-hairline text-muted hover:border-ink hover:text-ink",
       )}
     >
       {children}

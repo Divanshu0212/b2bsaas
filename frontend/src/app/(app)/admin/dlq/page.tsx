@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dlqApi } from "@/lib/api/endpoints";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 
 /**
@@ -38,18 +39,18 @@ export default function DlqAdminPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-semibold tracking-tight">Dead letters</h1>
-      <p className="mb-4 text-sm text-muted">
+      <PageHeader eyebrow="Admin" title="Dead letters" />
+      <p className="-mt-4 mb-6 text-sm text-muted">
         Messages that failed processing after retries. Replay pushes one back to its origin topic.
       </p>
 
-      <div className="mb-4 max-w-xs">
-        <label htmlFor="topic" className="mb-1 block text-sm text-muted">
+      <div className="mb-6 max-w-xs">
+        <label htmlFor="topic" className="eyebrow mb-2 block">
           DLQ topic
         </label>
         <select
           id="topic"
-          className="h-10 w-full rounded-md border border-hairline bg-surface px-3 text-sm"
+          className="h-10 w-full rounded-none border-0 border-b border-hairline bg-transparent px-0.5 text-sm transition-colors focus-visible:border-accent focus-visible:outline-none"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
         >
@@ -67,33 +68,33 @@ export default function DlqAdminPage() {
       ) : isLoading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : !messages || messages.length === 0 ? (
-        <p className="rounded-md border border-hairline bg-surface p-8 text-center text-sm text-muted">
+        <p className="border-t border-hairline py-16 text-center text-sm text-muted">
           Nothing stuck in this topic.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-hairline bg-surface">
+        <div className="overflow-x-auto border-t border-hairline">
           <table className="w-full text-sm">
-            <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-muted">
-              <tr>
-                <th className="px-4 py-2 font-medium">Origin</th>
-                <th className="px-4 py-2 font-medium">Part/Offset</th>
-                <th className="px-4 py-2 font-medium">Attempts</th>
-                <th className="px-4 py-2 font-medium">Reason</th>
-                <th className="px-4 py-2" />
+            <thead className="border-b border-hairline text-left">
+              <tr className="[&>th]:eyebrow [&>th]:px-1 [&>th]:pb-2">
+                <th>Origin</th>
+                <th>Part/Offset</th>
+                <th>Attempts</th>
+                <th>Reason</th>
+                <th />
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
               {messages.map((m) => (
-                <tr key={`${m.partition}-${m.offset}`} className="hover:bg-hairline/30">
-                  <td className="px-4 py-2.5 text-ink">{m.originalTopic}</td>
-                  <td className="tabular px-4 py-2.5 text-muted">
+                <tr key={`${m.partition}-${m.offset}`} className="transition-colors hover:bg-accent-soft/40">
+                  <td className="px-1 py-3 font-medium text-ink">{m.originalTopic}</td>
+                  <td className="tabular px-1 py-3 text-muted">
                     {m.partition}/{m.offset}
                   </td>
-                  <td className="tabular px-4 py-2.5 text-muted">{m.attempts ?? "—"}</td>
-                  <td className="max-w-sm truncate px-4 py-2.5 text-muted" title={m.failureReason ?? ""}>
+                  <td className="tabular px-1 py-3 text-muted">{m.attempts ?? "—"}</td>
+                  <td className="max-w-sm truncate px-1 py-3 text-muted" title={m.failureReason ?? ""}>
                     {m.failureReason ?? "—"}
                   </td>
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="px-1 py-3 text-right">
                     <Button
                       size="sm"
                       variant="outline"

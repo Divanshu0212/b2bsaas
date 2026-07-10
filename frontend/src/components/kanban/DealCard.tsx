@@ -22,22 +22,22 @@ export function DealCard({ deal, dragging }: { deal: DealResponse; dragging?: bo
       ref={setNodeRef}
       style={style}
       className={cn(
-        "rounded-md border border-hairline bg-surface p-3 shadow-sm",
+        "border border-hairline bg-surface p-3 transition-colors hover:border-ink",
         "cursor-grab active:cursor-grabbing",
-        (isDragging || dragging) && "opacity-60 ring-2 ring-accent",
+        (isDragging || dragging) && "opacity-70 border-accent shadow-[0_8px_24px_-12px_rgba(23,19,14,0.35)]",
       )}
       {...listeners}
       {...attributes}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="tabular text-sm font-semibold text-ink">
+        <span className="tabular display text-lg text-ink">
           {money(deal.amount, deal.currency)}
         </span>
       </div>
       {deal.leadId && (
         <Link
           href={`/leads/${deal.leadId}`}
-          className="mt-1 block text-xs text-accent hover:underline"
+          className="mt-1.5 block text-xs text-accent underline-offset-4 hover:underline"
           // Don't start a drag when the link is clicked.
           onPointerDown={(e) => e.stopPropagation()}
         >

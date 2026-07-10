@@ -42,13 +42,13 @@ export function NotificationBell() {
   return (
     <div className="relative">
       <button
-        className="relative rounded-md p-2 text-muted hover:bg-hairline/50 hover:text-ink"
+        className="relative p-2 text-muted transition-colors hover:text-ink"
         onClick={() => setOpen((o) => !o)}
         aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <Bell size={18} aria-hidden />
+        <Bell size={17} strokeWidth={1.75} aria-hidden />
         {unread > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white tabular">
             {unread > 9 ? "9+" : unread}
@@ -58,10 +58,10 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-1 w-80 rounded-md border border-hairline bg-surface shadow-lg"
+          className="absolute right-0 mt-2 w-80 border border-hairline bg-surface shadow-[0_8px_24px_-12px_rgba(23,19,14,0.3)]"
           role="menu"
         >
-          <div className="border-b border-hairline px-4 py-2 text-sm font-medium">
+          <div className="eyebrow border-b border-hairline px-4 py-3">
             Notifications
           </div>
           {items.length === 0 ? (
@@ -72,8 +72,8 @@ export function NotificationBell() {
                 <li key={n.id}>
                   <button
                     className={cn(
-                      "flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm hover:bg-hairline/40",
-                      !n.readAt && "bg-accent-soft/40",
+                      "flex w-full flex-col items-start gap-0.5 border-b border-hairline px-4 py-3 text-left text-sm transition-colors last:border-b-0 hover:bg-hairline/40",
+                      !n.readAt && "border-l-2 border-l-accent bg-accent-soft/40",
                     )}
                     onClick={() => !n.readAt && markRead.mutate(n.id)}
                   >

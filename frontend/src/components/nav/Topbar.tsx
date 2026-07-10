@@ -19,37 +19,37 @@ export function Topbar({ session }: { session: Session | null }) {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface px-6">
-      <div className="text-sm text-muted">
+      <div>
         {session ? (
-          <span className="tabular">
-            Role: <span className="text-ink">{session.role}</span>
+          <span className="eyebrow">
+            {session.role.replace("_", " ")}
           </span>
         ) : null}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <NotificationBell />
         <div className="relative">
           <button
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-muted hover:bg-hairline/50"
+            className="flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-ink"
             onClick={() => setMenuOpen((o) => !o)}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
           >
             Account
-            <ChevronDown size={16} aria-hidden />
+            <ChevronDown size={15} aria-hidden />
           </button>
           {menuOpen && (
             <div
-              className="absolute right-0 mt-1 w-40 rounded-md border border-hairline bg-surface p-1 shadow-lg"
+              className="absolute right-0 mt-2 w-44 border border-hairline bg-surface p-1"
               role="menu"
             >
               <button
-                className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-ink hover:bg-hairline/60"
+                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-ink transition-colors hover:bg-accent-soft"
                 onClick={onLogout}
                 role="menuitem"
               >
-                <LogOut size={16} aria-hidden />
+                <LogOut size={15} aria-hidden />
                 Sign out
               </button>
             </div>

@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { Trash2 } from "lucide-react";
 import { contactsApi } from "@/lib/api/endpoints";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 
 function fullName(first: string | null, last: string | null): string {
@@ -35,44 +36,47 @@ export default function ContactsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Contacts</h1>
-        <Link href="/contacts/new">
-          <Button size="sm">New contact</Button>
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="People"
+        title="Contacts"
+        action={
+          <Link href="/contacts/new">
+            <Button size="sm">New contact</Button>
+          </Link>
+        }
+      />
 
       {isLoading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : isError || !data ? (
         <p className="text-sm text-danger">Couldn&apos;t load contacts.</p>
       ) : data.content.length === 0 ? (
-        <p className="rounded-md border border-hairline bg-surface p-8 text-center text-sm text-muted">
+        <p className="border-t border-hairline py-16 text-center text-sm text-muted">
           No contacts yet.
         </p>
       ) : (
         <>
-          <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+          <div className="border-t border-hairline">
             <table className="w-full text-sm">
-              <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Name</th>
-                  <th className="px-4 py-2 font-medium">Title</th>
-                  <th className="px-4 py-2 font-medium">Email</th>
-                  <th className="px-4 py-2 font-medium">Phone</th>
-                  <th className="px-4 py-2" />
+              <thead className="border-b border-hairline text-left">
+                <tr className="[&>th]:eyebrow [&>th]:px-1 [&>th]:pb-2">
+                  <th>Name</th>
+                  <th>Title</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline">
                 {data.content.map((c) => (
-                  <tr key={c.id} className="hover:bg-hairline/30">
-                    <td className="px-4 py-2.5 text-ink">{fullName(c.firstName, c.lastName)}</td>
-                    <td className="px-4 py-2.5 text-muted">{c.title ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-muted">{c.email ?? "—"}</td>
-                    <td className="tabular px-4 py-2.5 text-muted">{c.phone ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-right">
+                  <tr key={c.id} className="transition-colors hover:bg-accent-soft/40">
+                    <td className="px-1 py-3 font-medium text-ink">{fullName(c.firstName, c.lastName)}</td>
+                    <td className="px-1 py-3 text-muted">{c.title ?? "—"}</td>
+                    <td className="px-1 py-3 text-muted">{c.email ?? "—"}</td>
+                    <td className="tabular px-1 py-3 text-muted">{c.phone ?? "—"}</td>
+                    <td className="px-1 py-3 text-right">
                       <button
-                        className="text-faint hover:text-danger"
+                        className="text-faint transition-colors hover:text-danger"
                         aria-label="Delete contact"
                         onClick={() => {
                           if (confirm("Delete this contact?")) remove.mutate(c.id);

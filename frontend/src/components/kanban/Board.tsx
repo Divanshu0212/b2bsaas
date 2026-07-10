@@ -105,9 +105,9 @@ function BoardSkeleton() {
     <div className="flex gap-4">
       {[0, 1, 2, 3].map((i) => (
         <div key={i} className="w-72 shrink-0 space-y-2">
-          <div className="h-5 w-24 rounded bg-hairline" />
-          <div className="h-20 rounded-lg bg-hairline/50" />
-          <div className="h-20 rounded-lg bg-hairline/50" />
+          <div className="mb-3 h-6 w-full border-b-2 border-hairline" />
+          <div className="h-20 bg-hairline/40" />
+          <div className="h-20 bg-hairline/40" />
         </div>
       ))}
     </div>

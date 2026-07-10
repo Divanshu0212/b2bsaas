@@ -20,36 +20,44 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="mx-auto max-w-4xl">
-      <Link href="/leads" className="text-sm text-accent hover:underline">
+      <Link
+        href="/leads"
+        className="eyebrow text-accent transition-colors hover:text-ink"
+      >
         ← Leads
       </Link>
 
-      <header className="mt-2 mb-6 flex items-start justify-between">
+      <header className="mb-8 mt-3 flex items-end justify-between gap-4 border-b border-hairline pb-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">
+          <p className="eyebrow mb-1.5">
+            {lead ? (
+              <>
+                <span className="capitalize">{lead.status.toLowerCase()}</span>
+                {lead.source ? ` · ${lead.source}` : ""}
+              </>
+            ) : (
+              "Lead"
+            )}
+          </p>
+          <h1 className="display text-3xl font-semibold tracking-tight text-ink">
             {isLoading ? "Lead" : `Lead ${id.slice(0, 8)}`}
           </h1>
-          {lead && (
-            <p className="mt-1 text-sm text-muted">
-              <span className="capitalize">{lead.status.toLowerCase()}</span>
-              {lead.source ? ` · ${lead.source}` : ""}
-            </p>
-          )}
         </div>
-        <Link href={`/leads/${id}/edit`}>
+        <Link href={`/leads/${id}/edit`} className="pb-1">
           <Button size="sm" variant="outline">
             Edit
           </Button>
         </Link>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
+      <div className="grid gap-8 md:grid-cols-[1fr_1.2fr]">
         <ScorePanel leadId={id} />
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-            Timeline
-          </h2>
+          <div className="ledger-rule mb-4">
+            <span className="eyebrow">Timeline</span>
+            <span className="rule-fill" aria-hidden />
+          </div>
           <TimelineFeed leadId={id} />
         </section>
       </div>

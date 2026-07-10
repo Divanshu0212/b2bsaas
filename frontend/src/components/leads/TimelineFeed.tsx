@@ -57,9 +57,9 @@ export function TimelineFeed({ leadId }: { leadId: string }) {
         {entries.map((a) => {
           const Icon = ICONS[a.activityType] ?? Activity;
           return (
-            <li key={a.id} className="flex gap-3">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-hairline/60 text-muted">
-                <Icon size={15} aria-hidden />
+            <li key={a.id} className="flex gap-3 border-l border-hairline pl-4">
+              <span className="-ml-[1.30rem] mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border border-hairline bg-surface text-muted">
+                <Icon size={13} aria-hidden />
               </span>
               <div>
                 <p className="text-sm text-ink">{label(a)}</p>

@@ -55,27 +55,63 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-full items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        {/* Signature wordmark: the pipe glyph as a filled stage bar. */}
-        <div className="mb-8 flex items-center gap-2">
-          <span className="inline-block h-5 w-1.5 rounded-full bg-accent" aria-hidden />
-          <span className="text-lg font-semibold tracking-tight">SalesPipe</span>
+    <main className="flex min-h-full">
+      {/* Editorial split: a serif thesis on the left, the quiet form on the right. */}
+      <aside className="relative hidden w-1/2 flex-col justify-between border-r border-hairline bg-surface p-12 lg:flex">
+        <div className="flex items-baseline gap-2">
+          <span className="display text-xl font-semibold tracking-tight text-ink">
+            SalesPipe
+          </span>
+          <span className="inline-block h-1.5 w-1.5 translate-y-[-0.15em] bg-accent" aria-hidden />
         </div>
 
-        <h1 className="mb-1 text-2xl font-semibold tracking-tight">
-          {mode === "login" ? "Sign in" : "Create your workspace"}
-        </h1>
-        <p className="mb-6 text-sm text-muted">
-          {mode === "login"
-            ? "Access your pipeline."
-            : "Start a new org — you'll be its admin."}
-        </p>
+        <div className="max-w-md">
+          <p className="eyebrow mb-4">The pipeline, kept like a ledger</p>
+          <p className="display text-4xl leading-[1.1] tracking-tight text-ink">
+            Every stage, score, and figure — set in a single column you can read
+            top to bottom.
+          </p>
+        </div>
 
-        <form onSubmit={onSubmit} className="space-y-3">
+        {/* A quiet ledger rule as ambient signature. */}
+        <div className="space-y-3 text-[13px] text-muted">
+          <div className="ledger-rule">
+            <span>Qualified</span>
+            <span className="rule-fill" aria-hidden />
+            <span className="tabular display text-ink">$842,000</span>
+          </div>
+          <div className="ledger-rule">
+            <span>Proposal</span>
+            <span className="rule-fill" aria-hidden />
+            <span className="tabular display text-ink">$310,000</span>
+          </div>
+        </div>
+      </aside>
+
+      <div className="flex w-full flex-col items-center justify-center px-6 lg:w-1/2">
+        <div className="w-full max-w-sm">
+          {/* Wordmark repeats on narrow screens where the aside is hidden. */}
+          <div className="mb-10 flex items-baseline gap-2 lg:hidden">
+            <span className="display text-xl font-semibold tracking-tight text-ink">
+              SalesPipe
+            </span>
+            <span className="inline-block h-1.5 w-1.5 translate-y-[-0.15em] bg-accent" aria-hidden />
+          </div>
+
+          <p className="eyebrow mb-3">{mode === "login" ? "Welcome back" : "Get started"}</p>
+          <h1 className="display mb-2 text-3xl font-semibold tracking-tight text-ink">
+            {mode === "login" ? "Sign in" : "Create your workspace"}
+          </h1>
+          <p className="mb-8 text-sm text-muted">
+            {mode === "login"
+              ? "Access your pipeline."
+              : "Start a new org — you'll be its admin."}
+          </p>
+
+          <form onSubmit={onSubmit} className="space-y-5">
           {mode === "register" && (
             <div>
-              <label htmlFor="org" className="mb-1 block text-sm text-muted">
+              <label htmlFor="org" className="eyebrow mb-2 block">
                 Organization
               </label>
               <Input
@@ -88,7 +124,7 @@ function LoginForm() {
             </div>
           )}
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm text-muted">
+            <label htmlFor="email" className="eyebrow mb-2 block">
               Email
             </label>
             <Input
@@ -101,7 +137,7 @@ function LoginForm() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm text-muted">
+            <label htmlFor="password" className="eyebrow mb-2 block">
               Password
             </label>
             <Input
@@ -125,16 +161,17 @@ function LoginForm() {
           </Button>
         </form>
 
-        <button
-          type="button"
-          className="mt-4 text-sm text-accent hover:underline"
-          onClick={() => {
-            setMode((m) => (m === "login" ? "register" : "login"));
-            setError(null);
-          }}
-        >
-          {mode === "login" ? "Create a new workspace" : "Have an account? Sign in"}
-        </button>
+          <button
+            type="button"
+            className="mt-6 text-[13px] font-medium text-accent underline-offset-4 hover:underline"
+            onClick={() => {
+              setMode((m) => (m === "login" ? "register" : "login"));
+              setError(null);
+            }}
+          >
+            {mode === "login" ? "Create a new workspace" : "Have an account? Sign in"}
+          </button>
+        </div>
       </div>
     </main>
   );

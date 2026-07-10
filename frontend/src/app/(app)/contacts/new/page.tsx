@@ -1,9 +1,10 @@
 import { ContactForm } from "@/components/forms/ContactForm";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function NewContactPage() {
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-xl font-semibold tracking-tight">New contact</h1>
+      <PageHeader eyebrow="New record" title="New contact" />
       <ContactForm />
     </div>
   );
