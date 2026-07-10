@@ -17,11 +17,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState<boolean>(() => getAccessToken() !== null);
 
   useEffect(() => {
-    if (getAccessToken()) {
-      setSession(getSession());
-      setReady(true);
-      return;
-    }
+    // Fast path: token already in memory (client navigation) — nothing to do, initial
+    // state already reflects it.
+    if (getAccessToken()) return;
     // No token in memory (page reload): re-mint from the httpOnly refresh cookie.
     let cancelled = false;
     (async () => {
