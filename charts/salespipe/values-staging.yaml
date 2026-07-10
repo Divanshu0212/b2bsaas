@@ -1,0 +1,31 @@
+# Staging overlay. Argo auto-syncs this env. Modest replicas/resources; KEDA on so lag
+# scaling is exercised before prod. image.tag is bumped by CI to the merged git SHA.
+replicaCount: 2
+
+image:
+  tag: staging
+
+resources:
+  requests: { cpu: 250m, memory: 512Mi }
+  limits: { cpu: "1", memory: 1Gi }
+
+hpa:
+  enabled: false   # KEDA owns autoscaling here
+keda:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+
+ingress:
+  host: staging.salespipe.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+  tls:
+    secretName: salespipe-staging-tls
+
+config:
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+# Staging still uses ESO (proves the vault path before prod).
+secret:
+  mode: eso

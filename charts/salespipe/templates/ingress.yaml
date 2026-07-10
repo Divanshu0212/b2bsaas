@@ -1,0 +1,31 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "salespipe.fullname" . }}
+  labels: {{- include "salespipe.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  # cert-manager watches this tls block + the cluster-issuer annotation, provisions the cert
+  # into secretName. If the ACME challenge stalls behind a local ingress, disable tls and
+  # use the local shortcut (see README managed-service section).
+  tls:
+    - hosts: [{{ .Values.ingress.host | quote }}]
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "salespipe.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}

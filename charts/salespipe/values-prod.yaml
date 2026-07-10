@@ -1,0 +1,38 @@
+# Prod overlay. Manual Argo promote only. Real resource sizing (from Phase 4 load runs,
+# scaled off laptop numbers), wider autoscale ceiling, letsencrypt-prod issuer, ESO secrets.
+# NOTE (T5 risk): do not let prod inherit demo limits — these are deliberately raised.
+replicaCount: 3
+
+image:
+  tag: prod
+  pullPolicy: IfNotPresent
+
+resources:
+  requests: { cpu: "1", memory: 1Gi }
+  limits: { cpu: "2", memory: 2Gi }
+
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0
+
+hpa:
+  enabled: false   # KEDA owns autoscaling
+keda:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 12
+  lagThreshold: "100"
+
+pdb:
+  enabled: true
+  minAvailable: 2
+
+ingress:
+  host: app.salespipe.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    secretName: salespipe-prod-tls
+
+secret:
+  mode: eso

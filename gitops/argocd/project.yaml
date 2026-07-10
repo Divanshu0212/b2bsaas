@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: salespipe
+  namespace: argocd
+spec:
+  description: SalesPipe platform (app + ML service)
+  sourceRepos:
+    - https://github.com/Divanshu0212/b2bsaas
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: salespipe
+    - server: https://kubernetes.default.svc
+      namespace: salespipe-staging
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

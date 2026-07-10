@@ -1,0 +1,121 @@
+# Default values for the salespipe app chart. Env overlays (values-staging.yaml,
+# values-prod.yaml) override only what differs. These defaults are laptop/kind-safe.
+
+replicaCount: 2
+
+image:
+  repository: salespipe
+  # Tag is bumped by CI (GitOps: image.tag pinned to a git SHA in the env values file).
+  tag: local
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# --- Rolling deploy (T5.2): surge one extra pod, never drop below full during rollout. ---
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0
+
+# Resource requests/limits (T5.2). Defaults sized from Phase 4 laptop load runs; prod
+# overlay raises them. requests = scheduler floor, limits = throttle/OOM ceiling.
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# --- Probes (T5.2). Spring Boot actuator liveness/readiness groups. Readiness reports
+# DOWN while DB/Kafka unreachable, so the pod is pulled from the Service before traffic. ---
+probes:
+  startup:
+    path: /actuator/health/liveness
+    failureThreshold: 30
+    periodSeconds: 5
+  liveness:
+    path: /actuator/health/liveness
+    periodSeconds: 10
+  readiness:
+    path: /actuator/health/readiness
+    periodSeconds: 10
+
+# --- HPA (T5.2): CPU + custom (http request rate via Prometheus adapter, optional). ---
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  # Set customMetric.enabled=true only where a Prometheus Adapter exposes the metric.
+  customMetric:
+    enabled: false
+    name: http_server_requests_seconds_count
+    targetAverageValue: "50"
+
+# --- PodDisruptionBudget (T5.2): a node drain can't evict below this. ---
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# --- Ingress (T5.2): nginx + cert-manager TLS. ---
+ingress:
+  enabled: true
+  className: nginx
+  host: salespipe.local
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: salespipe-tls
+
+# --- KEDA (T5.3): scale the consumer workload on Kafka consumer-group lag, not CPU.
+# When enabled, KEDA owns the HPA for this deployment, so set hpa.enabled=false to avoid
+# two autoscalers fighting. When KEDA is unavailable, leave enabled=false and hpa.enabled=true
+# (CPU-only fallback per the tier map). ---
+keda:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 8
+  cooldownPeriod: 120
+  pollingInterval: 15
+  bootstrapServers: kafka:9092
+  # scoring-features-* is the heavy async recompute path (DealStageFeatureConsumer /
+  # ActivityFeatureConsumer). lagThreshold = messages of lag per replica before scaling up.
+  consumerGroup: scoring-features-deal-stage
+  topic: deal.stage.changed
+  lagThreshold: "50"
+
+# Non-secret config -> ConfigMap. Mirrors k8s/configmap.yaml.
+config:
+  DB_URL: jdbc:postgresql://postgres:5432/salespipe
+  DB_USER: salespipe
+  REDIS_HOST: redis
+  # K8s injects REDIS_PORT=tcp://<ip>:6379 for the redis Service, colliding with the
+  # app's ${REDIS_PORT:6379} int placeholder. Pin a plain port (see k8s/deployment.yaml).
+  REDIS_PORT: "6379"
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  SCHEMA_REGISTRY_URL: http://schema-registry:8081
+  SCORING_SERVICE_URL: http://lead-scoring:8000
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
+
+# --- Secrets (T5.5). mode: plain = chart-rendered Secret (local fallback). mode: eso =
+# ExternalSecret pulls from a vault; the chart renders NO secret material. ---
+secret:
+  mode: plain
+  # Used only when mode=plain. Overridden per-env; NEVER commit real prod values.
+  data:
+    DB_PASSWORD: salespipe
+    JWT_SECRET: k8s-secret-min-256-bits-long-for-hs256-xxxxxxxxxxxxxxxxxxxxx
+  # Used only when mode=eso.
+  eso:
+    secretStoreRef: vault-backend
+    refreshInterval: 1h
+    # remoteKey = path in the vault; property = key within that secret.
+    keys:
+      DB_PASSWORD: { remoteKey: salespipe/db, property: password }
+      JWT_SECRET: { remoteKey: salespipe/jwt, property: secret }

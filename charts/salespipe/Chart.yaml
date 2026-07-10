@@ -1,0 +1,7 @@
+apiVersion: v2
+name: salespipe
+description: SalesPipe multi-tenant B2B CRM — Spring Boot modular monolith
+type: application
+# version = chart version (bump on template changes); appVersion tracks the app image tag.
+version: 0.1.0
+appVersion: "1.0.0"
