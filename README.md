@@ -16,6 +16,12 @@ The frontend is a Next.js app in an editorial "ledger" style — a cool slate pa
 indigo accent, a Fraunces display serif for titles and money, and hairline rules doing the
 structural work.
 
+**Lead detail — AI scoring** — a trained XGBoost model (served from MLflow) scores each lead
+0–100 for conversion likelihood, with SHAP top-factors explaining *why*. The score history
+sparkline shows the jump from the cold-start heuristic to the promoted model.
+
+![Lead detail with AI score](frontend/public/screenshots/lead-detail.png)
+
 **Pipeline** — deals move stage to stage; each column totals in serif.
 
 ![Pipeline](frontend/public/screenshots/pipeline.png)
@@ -24,7 +30,7 @@ structural work.
 
 ![Reports](frontend/public/screenshots/reports.png)
 
-**Leads** — inbound leads with status, source, and AI score.
+**Leads** — inbound leads by status and source; open one for its AI score and timeline.
 
 ![Leads](frontend/public/screenshots/leads.png)
 
