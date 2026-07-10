@@ -1,0 +1,13 @@
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "salespipe.fullname" . }}
+  labels: {{- include "salespipe.labels" . | nindent 4 }}
+spec:
+  # A voluntary disruption (node drain, cluster upgrade) can't push ready replicas
+  # below this. Keep < hpa.minReplicas or a drain can deadlock.
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels: {{- include "salespipe.selectorLabels" . | nindent 6 }}
+{{- end }}

@@ -1,0 +1,27 @@
+{{- if .Values.keda.enabled }}
+# T5.3: KEDA scales the app deployment on Kafka consumer-group lag. KEDA creates and owns
+# the underlying HPA (hence hpa.enabled must be false here). Injecting lag (pause consumers,
+# flood the topic) scales pods up; draining scales back to minReplicaCount.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "salespipe.fullname" . }}
+  labels: {{- include "salespipe.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "salespipe.fullname" . }}
+  minReplicaCount: {{ .Values.keda.minReplicas }}
+  maxReplicaCount: {{ .Values.keda.maxReplicas }}
+  cooldownPeriod: {{ .Values.keda.cooldownPeriod }}
+  pollingInterval: {{ .Values.keda.pollingInterval }}
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: {{ .Values.keda.bootstrapServers }}
+        consumerGroup: {{ .Values.keda.consumerGroup }}
+        topic: {{ .Values.keda.topic }}
+        lagThreshold: {{ .Values.keda.lagThreshold | quote }}
+        # offsetResetPolicy=latest: don't count pre-existing backlog on a cold consumer group
+        # as scale-worthy lag until it has committed at least once.
+        offsetResetPolicy: latest
+{{- end }}

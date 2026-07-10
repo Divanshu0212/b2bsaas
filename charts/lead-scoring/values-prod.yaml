@@ -1,0 +1,15 @@
+# Prod ML sizing. Embedding model in memory dominates footprint — real limits, NOT demo.
+replicaCount: 2
+image:
+  tag: prod
+resources:
+  requests: { cpu: "1", memory: 3Gi }
+  limits: { cpu: "4", memory: 4Gi }
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+pdb:
+  enabled: true
+  minAvailable: 1

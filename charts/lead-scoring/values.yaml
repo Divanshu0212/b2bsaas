@@ -1,0 +1,60 @@
+# lead-scoring (ML) chart defaults. Separate chart from the app because the embedding model
+# lives in memory — heavier CPU/mem, different scaling shape, no public ingress (internal
+# service the app calls via ScoringClient). Mirrors k8s/scoring-service.yaml.
+
+replicaCount: 1
+
+image:
+  repository: lead-scoring
+  tag: local
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0
+
+# Embedding model is memory-heavy (Phase 3 risk note). Prod overlay raises further; never
+# let it inherit demo limits or the model OOMs on load.
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+probes:
+  liveness:
+    path: /health
+    periodSeconds: 10
+  readiness:
+    path: /health
+    periodSeconds: 10
+  # Model load can take tens of seconds — startup probe holds off liveness until ready.
+  startup:
+    path: /health
+    failureThreshold: 30
+    periodSeconds: 5
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+  # Scale on memory as well: the model is the dominant footprint, CPU spikes only per request.
+  targetCPUUtilizationPercentage: 75
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+config:
+  MLFLOW_TRACKING_URI: http://mlflow:5000
+  MLFLOW_MODEL_NAME: leadscore
+  MLFLOW_MODEL_STAGE: Production
